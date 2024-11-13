@@ -250,3 +250,4 @@ wsproto==1.2.0
 xgboost==2.0.0
 zipp==3.16.2
 zope.interface==6.1
+streamlit
