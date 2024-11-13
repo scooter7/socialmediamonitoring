@@ -1,4 +1,3 @@
-# Required Libraries
 import sys
 import pysqlite3
 sys.modules["sqlite3"] = pysqlite3
@@ -6,13 +5,13 @@ sys.modules["sqlite3"] = pysqlite3
 import os
 import time
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew
 from crewai_tools import SerperDevTool
 from langchain_openai import ChatOpenAI
 import openai
+import matplotlib.pyplot as plt
+import pandas as pd
 
 # Load environment variables from .env file
 load_dotenv()
@@ -33,73 +32,62 @@ def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
         goal=f"Research and gather information about {brand_name} from various sources",
-        backstory="Expert researcher with a knack for finding relevant information.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
         llm=llm,
         max_iter=15
     )
-
     social_media_monitor = Agent(
         role="Social Media Monitor",
         goal=f"Monitor social media platforms for mentions of {brand_name}",
-        backstory="Experienced social media analyst with keen eyes for trends.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
         llm=llm,
         max_iter=15
     )
-
     sentiment_analyzer = Agent(
         role="Sentiment Analyzer",
         goal=f"Analyze the sentiment of social media mentions about {brand_name}",
-        backstory="Expert in natural language processing and sentiment analysis.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
         max_iter=15
     )
-
     report_generator = Agent(
         role="Report Generator",
         goal=f"Generate comprehensive reports based on the analysis of {brand_name}",
-        backstory="Skilled data analyst and report writer.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
         max_iter=15
     )
-
     return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
 
 # Define tasks with crewai
 def create_tasks(brand_name, agents):
     research_task = Task(
-        description=f"Research {brand_name} and provide a summary of online presence.",
+        description=f"Research {brand_name} and provide a summary of their online presence.",
         agent=agents[0],
-        expected_output="Structured summary with key insights and notable mentions."
+        expected_output="Structured summary with key insights on recent activities.",
     )
-
     monitoring_task = Task(
-        description=f"Monitor social media for mentions of '{brand_name}' and summarize.",
+        description=f"Monitor social media for mentions of '{brand_name}' and summarize findings.",
         agent=agents[1],
-        expected_output="Summary of mentions with platform breakdown."
+        expected_output="Summary of mentions including counts, platforms, notable mentions.",
     )
-
     sentiment_analysis_task = Task(
         description=f"Analyze the sentiment of the social media mentions about {brand_name}.",
         agent=agents[2],
-        expected_output="Sentiment breakdown with notable themes."
+        expected_output="Sentiment breakdown and notable themes.",
     )
-
     report_generation_task = Task(
-        description=f"Generate a comprehensive report for {brand_name}.",
+        description=f"Generate a comprehensive report about {brand_name}.",
         agent=agents[3],
-        expected_output="Comprehensive report with insights and recommendations."
+        expected_output="Detailed report including insights and recommendations.",
+        output_json=True  # Ensure output is in JSON format
     )
-
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
 # Run social media monitoring and sentiment analysis workflow
@@ -108,14 +96,16 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     agents = create_agents(brand_name, llm)
     tasks = create_tasks(brand_name, agents)
     
-    crew = Crew(agents=agents, tasks=tasks, verbose=True)
+    crew = Crew(
+        agents=agents,
+        tasks=tasks,
+        verbose=True
+    )
 
     for attempt in range(max_retries):
         try:
-            result = crew.kickoff()
-            # Log the entire result structure for troubleshooting
-            st.write("Raw Result:", result)  # Display the raw output for debugging
-            return result  # Return full result
+            result = crew.kickoff().json()
+            return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
@@ -125,64 +115,59 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
+# Function to visualize data in charts
+def create_visualizations(mentions_data, sentiment_data):
+    # Social media mention breakdown
+    if mentions_data:
+        mention_counts = pd.DataFrame(mentions_data).groupby("platform").size().reset_index(name="counts")
+        st.subheader("Social Media Mentions by Platform")
+        plt.figure(figsize=(8, 5))
+        plt.bar(mention_counts["platform"], mention_counts["counts"])
+        plt.title("Mentions by Platform")
+        plt.xlabel("Platform")
+        plt.ylabel("Mentions")
+        st.pyplot(plt)
+
+    # Sentiment distribution
+    if sentiment_data:
+        sentiment_df = pd.DataFrame(sentiment_data, columns=["Sentiment", "Count"])
+        st.subheader("Sentiment Analysis Distribution")
+        plt.figure(figsize=(8, 5))
+        plt.pie(sentiment_df["Count"], labels=sentiment_df["Sentiment"], autopct="%1.1f%%")
+        plt.title("Sentiment Distribution")
+        st.pyplot(plt)
+
+# Display formatted report
+def display_report(brand_name, result):
+    st.header(f"Report for {brand_name}")
+    if "Research Findings" in result:
+        st.subheader("Research Findings")
+        st.write(result["Research Findings"])
+
+    if "Social Media Mentions" in result:
+        st.subheader("Social Media Mentions")
+        social_media_mentions = result["Social Media Mentions"]
+        for platform, mentions in social_media_mentions.items():
+            st.write(f"**{platform}**")
+            for mention in mentions:
+                st.write(f"- {mention}")
+    
+    if "Sentiment Analysis" in result:
+        st.subheader("Sentiment Analysis")
+        sentiment_analysis = result["Sentiment Analysis"]
+        sentiment_summary = {sentiment: count for sentiment, count in sentiment_analysis.items()}
+        create_visualizations(social_media_mentions, sentiment_summary)
+
+    if "Recommendations" in result:
+        st.subheader("Recommendations")
+        st.write(result["Recommendations"])
+
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
 st.write("Analyze a brand or topic with integrated social media monitoring, sentiment analysis, and report generation.")
 
 # User input for brand or topic
 brand_name = st.text_input("Enter the Brand or Topic Name")
-
-# Function to parse and display report data
-def display_report(result):
-    st.header(f"Report for {brand_name}")
-
-    # Inspect and display all available fields in CrewOutput
-    result_dict = result.json() if hasattr(result, "json") else {}
-    
-    # Output the raw JSON structure for reference
-    st.write("Parsed Result Structure:", result_dict)  # Display parsed structure for debugging
-
-    # Display each section if available
-    if "Research Findings" in result_dict:
-        st.subheader("Research Findings")
-        st.write(result_dict["Research Findings"])
-
-    if "Social Media Mentions" in result_dict:
-        st.subheader("Social Media Monitoring Summary")
-        st.write(result_dict["Social Media Mentions"])
-
-        # Visualization: Mentions Breakdown
-        try:
-            mentions_data = result_dict["Social Media Mentions"]
-            platforms = list(mentions_data.keys())
-            mentions = list(mentions_data.values())
-            fig, ax = plt.subplots()
-            ax.bar(platforms, mentions, color="skyblue")
-            ax.set_title("Social Media Mentions by Platform")
-            ax.set_xlabel("Platform")
-            ax.set_ylabel("Mentions")
-            st.pyplot(fig)
-        except Exception as e:
-            st.error(f"Error displaying social media mentions chart: {str(e)}")
-
-    if "Sentiment Analysis" in result_dict:
-        st.subheader("Sentiment Analysis")
-        st.write(result_dict["Sentiment Analysis"])
-
-        # Visualization: Sentiment Breakdown
-        try:
-            sentiment_counts = result_dict["Sentiment Analysis"]
-            fig, ax = plt.subplots()
-            ax.pie(sentiment_counts.values(), labels=sentiment_counts.keys(), autopct="%1.1f%%", startangle=140)
-            ax.axis("equal")
-            ax.set_title("Sentiment Distribution")
-            st.pyplot(fig)
-        except Exception as e:
-            st.error(f"Error displaying sentiment chart: {str(e)}")
-
-    if "Recommendations" in result_dict:
-        st.subheader("Recommendations")
-        st.write(result_dict["Recommendations"])
 
 # Run the analysis on button click
 if st.button("Start Analysis"):
@@ -191,7 +176,7 @@ if st.button("Start Analysis"):
         result = run_social_media_monitoring(brand_name)
         
         if result:
-            display_report(result)
+            display_report(brand_name, result)
         else:
             st.error("Failed to generate the report. Please try again.")
     else:
