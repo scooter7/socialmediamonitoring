@@ -3,8 +3,9 @@ import streamlit as st
 import openai
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-import csv
 import requests
+import json
+import base64
 
 # Load environment and set up Streamlit Secrets for API keys
 load_dotenv()
@@ -39,16 +40,44 @@ def analyze_sentiment(text):
         messages=[{"role": "user", "content": sentiment_prompt}],
         max_tokens=10
     )
-    # Access content directly from the message
     return sentiment.choices[0].message.content.strip()
 
 # Function to compile and save the report to a CSV file in GitHub
 def generate_report(topic, research_summary, social_media_summary, sentiment_analysis):
-    csv_url = "https://raw.githubusercontent.com/yourusername/yourrepo/main/report.csv"  # Replace with actual GitHub CSV URL
-    with open(csv_url, mode='a', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(["Topic", "Research Summary", "Social Media Summary", "Sentiment Analysis"])
-        writer.writerow([topic, research_summary, social_media_summary, sentiment_analysis])
+    # GitHub repository details
+    repo_owner = "yourusername"  # Replace with your GitHub username
+    repo_name = "yourrepo"       # Replace with your GitHub repository name
+    file_path = "report.csv"     # Path in the repository where the file will be saved
+    github_token = st.secrets["GITHUB_TOKEN"]  # Store your GitHub token in Streamlit secrets
+
+    # Prepare CSV content
+    csv_content = "Topic,Research Summary,Social Media Summary,Sentiment Analysis\n"
+    csv_content += f'"{topic}","{research_summary}","{social_media_summary}","{sentiment_analysis}"\n'
+    encoded_content = base64.b64encode(csv_content.encode()).decode()
+
+    # GitHub API URL to create or update a file
+    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{file_path}"
+    
+    # Prepare the request payload
+    payload = {
+        "message": "Add report entry",
+        "content": encoded_content,
+        "branch": "main"  # Update if you want to save to a different branch
+    }
+
+    # Make a GET request to check if the file already exists to get the `sha`
+    response = requests.get(url, headers={"Authorization": f"token {github_token}"})
+    if response.status_code == 200:
+        # File exists, add 'sha' to payload for update
+        payload["sha"] = response.json()["sha"]
+
+    # Make the PUT request to create or update the file
+    response = requests.put(url, headers={"Authorization": f"token {github_token}"}, data=json.dumps(payload))
+
+    if response.status_code in [200, 201]:
+        st.success("Report generated and saved to GitHub.")
+    else:
+        st.error("Failed to save report to GitHub.")
 
 # Streamlit UI Setup
 st.title("Unified Brand and Topic Analysis without Database")
@@ -78,6 +107,5 @@ if st.button("Start Integrated Analysis"):
         # Generate final report
         st.write("Generating Report...")
         generate_report(topic_or_brand, research_summary, social_media_summary, sentiment_analysis)
-        st.success("Report generated and saved to CSV.")
     else:
         st.error("Please enter a brand or topic name to proceed.")
