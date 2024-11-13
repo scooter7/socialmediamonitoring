@@ -1,7 +1,3 @@
-import sys
-import pysqlite3
-sys.modules["sqlite3"] = pysqlite3
-
 import os
 import time
 import streamlit as st
@@ -10,6 +6,7 @@ from crewai import Agent, Task, Crew
 from crewai_tools import SerperDevTool
 from langchain_openai import ChatOpenAI
 import openai
+import matplotlib.pyplot as plt
 
 # Load environment variables from .env file
 load_dotenv()
@@ -30,74 +27,43 @@ def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
         goal=f"Research and gather information about {brand_name} from various sources",
-        backstory="You are an expert researcher with a knack for finding relevant information quickly.",
         verbose=True,
-        allow_delegation=False,
         tools=[search_tool],
         llm=llm,
-        max_iter=15  # Adjust max iterations
     )
-
     social_media_monitor = Agent(
         role="Social Media Monitor",
         goal=f"Monitor social media platforms for mentions of {brand_name}",
-        backstory="You are an experienced social media analyst with keen eyes for trends and mentions.",
         verbose=True,
-        allow_delegation=False,
         tools=[search_tool],
         llm=llm,
-        max_iter=15
     )
-
     sentiment_analyzer = Agent(
         role="Sentiment Analyzer",
         goal=f"Analyze the sentiment of social media mentions about {brand_name}",
-        backstory="You are an expert in natural language processing and sentiment analysis.",
         verbose=True,
-        allow_delegation=False,
         llm=llm,
-        max_iter=15
     )
-
-    report_generator = Agent(
-        role="Report Generator",
-        goal=f"Generate comprehensive reports based on the analysis of {brand_name}",
-        backstory="You are a skilled data analyst and report writer, adept at presenting insights clearly.",
-        verbose=True,
-        allow_delegation=False,
-        llm=llm,
-        max_iter=15
-    )
-
-    return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
+    return [researcher, social_media_monitor, sentiment_analyzer]
 
 # Define tasks with crewai
 def create_tasks(brand_name, agents):
     research_task = Task(
-        description=f"Research {brand_name} and provide a summary of their online presence, key information, and recent activities.",
+        description=f"Research {brand_name} and provide a summary of their online presence.",
         agent=agents[0],
-        expected_output="A structured summary with key insights on recent activities, platform presence, and notable mentions."
+        expected_output="Structured research summary with key insights on recent activities and notable mentions.",
     )
-
     monitoring_task = Task(
-        description=f"Monitor social media platforms for mentions of '{brand_name}'. Provide a summary of the mentions.",
+        description=f"Monitor social media platforms for mentions of '{brand_name}' and summarize the mentions.",
         agent=agents[1],
-        expected_output="Summary of mentions including counts, platforms, notable mentions, and hashtags."
+        expected_output="Summary of mentions, including counts and notable mentions.",
     )
-
     sentiment_analysis_task = Task(
-        description=f"Analyze the sentiment of the social media mentions about {brand_name}. Categorize them as positive, negative, or neutral.",
+        description=f"Analyze the sentiment of the social media mentions about {brand_name}.",
         agent=agents[2],
-        expected_output="Sentiment distribution and notable themes."
+        expected_output="Sentiment distribution across platforms.",
     )
-
-    report_generation_task = Task(
-        description=f"Generate a comprehensive report about {brand_name} based on the research and sentiment analysis.",
-        agent=agents[3],
-        expected_output="Comprehensive report including key insights and recommendations."
-    )
-
-    return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
+    return [research_task, monitoring_task, sentiment_analysis_task]
 
 # Run social media monitoring and sentiment analysis workflow
 def run_social_media_monitoring(brand_name, max_retries=3):
@@ -105,12 +71,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     agents = create_agents(brand_name, llm)
     tasks = create_tasks(brand_name, agents)
     
-    crew = Crew(
-        agents=agents,
-        tasks=tasks,
-        verbose=True
-    )
-
+    crew = Crew(agents=agents, tasks=tasks, verbose=True)
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
@@ -123,6 +84,46 @@ def run_social_media_monitoring(brand_name, max_retries=3):
             else:
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
+
+# Generate report and present in a structured format
+def present_results(results):
+    st.markdown("### Analysis Report")
+    if "research" in results:
+        st.subheader("Research Summary")
+        st.write(results["research"])
+    if "monitoring" in results:
+        st.subheader("Social Media Mentions Summary")
+        st.write(results["monitoring"])
+    if "sentiment_analysis" in results:
+        st.subheader("Sentiment Analysis Summary")
+        st.write(results["sentiment_analysis"])
+
+# Plot sentiment analysis by platform
+def plot_sentiment_by_platform(sentiment_data):
+    platforms = [entry["platform"] for entry in sentiment_data]
+    sentiments = ["Positive", "Neutral", "Negative"]
+    sentiment_counts = {
+        sentiment: [entry.get(sentiment.lower(), 0) for entry in sentiment_data]
+        for sentiment in sentiments
+    }
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    width = 0.2
+    for i, sentiment in enumerate(sentiments):
+        ax.bar(
+            [x + i * width for x in range(len(platforms))],
+            sentiment_counts[sentiment],
+            width,
+            label=sentiment,
+        )
+
+    ax.set_xlabel("Social Media Platforms")
+    ax.set_ylabel("Count of Mentions")
+    ax.set_title("Sentiment Analysis by Platform")
+    ax.set_xticks([x + width for x in range(len(platforms))])
+    ax.set_xticklabels(platforms)
+    ax.legend()
+    st.pyplot(fig)
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
@@ -138,8 +139,12 @@ if st.button("Start Analysis"):
         result = run_social_media_monitoring(brand_name)
         
         if result:
-            st.write("Final Report:")
-            st.write(result)
+            st.write("Analysis completed successfully.")
+            present_results(result)
+            
+            # Assume `result` contains sentiment data per platform in a structured way
+            if "sentiment_data" in result:
+                plot_sentiment_by_platform(result["sentiment_data"])
         else:
             st.error("Failed to generate the report. Please try again.")
     else:
