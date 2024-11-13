@@ -2,6 +2,8 @@ import os
 import streamlit as st
 import openai
 from dotenv import load_dotenv
+from crewai import Agent, Task, Crew
+from crewai_tools import SerperDevTool
 from langchain_openai import ChatOpenAI
 import requests
 import json
@@ -10,49 +12,88 @@ import base64
 # Load environment and set up Streamlit Secrets for API keys
 load_dotenv()
 
-# Directly set environment variables and API keys from Streamlit secrets
+# Set environment variables directly from Streamlit secrets
 os.environ["SERPER_API_KEY"] = st.secrets["SERPER_API_KEY"]
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
+# Initialize search tool
+search_tool = SerperDevTool()
+
 # Function to create LLM using GPT-4o-mini only
-def create_llm():
+def create_llm(use_gpt=True):
     return ChatOpenAI(model="gpt-4o-mini")
 
-# Function to perform topic research using LLM
-def research_topic(topic, llm):
-    prompt = f"Conduct a thorough research on the following topic: {topic}. Provide a summary with key points and insights."
-    response = llm.generate([prompt])  # Pass prompt as a list
-    return response
-
-# Function to monitor social media for mentions of a brand/topic
-def monitor_social_media(topic):
-    response = requests.get(f"https://api.serper.dev/search?q={topic}", headers={"X-API-Key": os.environ["SERPER_API_KEY"]})
-    if response.status_code == 200:
-        mentions = response.json().get("results", [])
-        return f"Top mentions for {topic}: {mentions}"
-    return "No social media data available."
-
-# Function to analyze sentiment using OpenAI's GPT-4o-mini model with chat completion
-def analyze_sentiment(text):
-    sentiment_prompt = f"Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral: {text}"
-    sentiment = openai.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": sentiment_prompt}],
-        max_tokens=10
+# Function to create agents for social media monitoring and sentiment analysis
+def create_agents(brand_name, llm):
+    researcher = Agent(
+        role="Social Media Researcher",
+        goal=f"Research and gather information about {brand_name} from various sources",
+        backstory="You are an expert researcher with a knack for finding relevant information quickly.",
+        verbose=True,
+        allow_delegation=False,
+        tools=[search_tool],
+        llm=llm,
+        max_iter=15
     )
-    return sentiment.choices[0].message.content.strip()
+
+    sentiment_analyzer = Agent(
+        role="Sentiment Analyzer",
+        goal=f"Analyze the sentiment of social media mentions about {brand_name}",
+        backstory="You are an expert in natural language processing and sentiment analysis.",
+        verbose=True,
+        allow_delegation=False,
+        llm=llm,
+        max_iter=15
+    )
+
+    return [researcher, sentiment_analyzer]
+
+# Function to create tasks for agents
+def create_tasks(brand_name, agents):
+    research_task = Task(
+        description=f"Research {brand_name} and provide a summary of recent social media activity.",
+        agent=agents[0],
+        expected_output="A summary containing recent mentions, platform details, and any notable hashtags or posts."
+    )
+
+    sentiment_analysis_task = Task(
+        description=f"Analyze the sentiment of the social media mentions about {brand_name}.",
+        agent=agents[1],
+        expected_output="A report categorizing mentions as positive, negative, or neutral, with key themes."
+    )
+
+    return [research_task, sentiment_analysis_task]
+
+# Function to run social media monitoring and sentiment analysis using CrewAI
+def run_social_media_monitoring(brand_name, use_gpt=True):
+    llm = create_llm(use_gpt)
+    agents = create_agents(brand_name, llm)
+    tasks = create_tasks(brand_name, agents)
+    
+    crew = Crew(
+        agents=agents,
+        tasks=tasks,
+        verbose=True
+    )
+
+    try:
+        result = crew.kickoff()
+        return result
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+        return None
 
 # Function to compile and save the report to a CSV file in GitHub
-def generate_report(topic, research_summary, social_media_summary, sentiment_analysis):
+def generate_report(brand_name, result):
     # GitHub repository details
-    repo_owner = "yourusername"  # Replace with your GitHub username
-    repo_name = "yourrepo"       # Replace with your GitHub repository name
+    repo_owner = "scooter7"  # Replace with your GitHub username
+    repo_name = "socialmediamonitoring"       # Replace with your GitHub repository name
     file_path = "report.csv"     # Path in the repository where the file will be saved
     github_token = st.secrets["GITHUB_TOKEN"]  # Store your GitHub token in Streamlit secrets
 
     # Prepare CSV content
-    csv_content = "Topic,Research Summary,Social Media Summary,Sentiment Analysis\n"
-    csv_content += f'"{topic}","{research_summary}","{social_media_summary}","{sentiment_analysis}"\n'
+    csv_content = "Brand,Research Summary,Sentiment Analysis\n"
+    csv_content += f'"{brand_name}","{result[0]}","{result[1]}"\n'
     encoded_content = base64.b64encode(csv_content.encode()).decode()
 
     # GitHub API URL to create or update a file
@@ -77,35 +118,29 @@ def generate_report(topic, research_summary, social_media_summary, sentiment_ana
     if response.status_code in [200, 201]:
         st.success("Report generated and saved to GitHub.")
     else:
-        st.error("Failed to save report to GitHub.")
+        st.error(f"Failed to save report to GitHub. Status code: {response.status_code}")
+        st.error(f"Response message: {response.json().get('message', 'No message available')}")
 
 # Streamlit UI Setup
-st.title("Unified Brand and Topic Analysis without Database")
-st.write("Analyze a brand or topic with integrated research, social media monitoring, sentiment analysis, and report generation.")
+st.title("Social Media Monitoring and Sentiment Analysis with CrewAI")
+st.write("Analyze a brand or topic with integrated social media monitoring, sentiment analysis, and report generation.")
 
-# User input for brand or topic
-topic_or_brand = st.text_input("Enter the Brand or Topic Name")
+# User input for brand or topic and model selection
+brand_name = st.text_input("Enter the Brand or Topic Name")
+use_gpt = st.checkbox("Use GPT-4o-mini model")
 
 # Run the analysis on button click
-if st.button("Start Integrated Analysis"):
-    if topic_or_brand:
-        llm = create_llm()
+if st.button("Start Analysis"):
+    if brand_name:
+        st.write("Running social media monitoring and sentiment analysis...")
+        result = run_social_media_monitoring(brand_name, use_gpt)
         
-        # Perform each task
-        st.write("Starting Research...")
-        research_summary = research_topic(topic_or_brand, llm)
-        st.write("Research Summary:", research_summary)
-        
-        st.write("Monitoring Social Media...")
-        social_media_summary = monitor_social_media(topic_or_brand)
-        st.write("Social Media Summary:", social_media_summary)
-        
-        st.write("Analyzing Sentiment...")
-        sentiment_analysis = analyze_sentiment(social_media_summary)
-        st.write("Sentiment Analysis:", sentiment_analysis)
-        
-        # Generate final report
-        st.write("Generating Report...")
-        generate_report(topic_or_brand, research_summary, social_media_summary, sentiment_analysis)
+        if result:
+            st.write("Research Summary:", result[0])
+            st.write("Sentiment Analysis:", result[1])
+            
+            # Generate final report
+            st.write("Generating Report...")
+            generate_report(brand_name, result)
     else:
         st.error("Please enter a brand or topic name to proceed.")
