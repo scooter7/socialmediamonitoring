@@ -12,7 +12,7 @@ load_dotenv()
 
 # Set API keys from Streamlit secrets
 os.environ["SERPER_API_KEY"] = st.secrets["SERPER_API_KEY"]
-openai.api_key = st.secrets["OPENAI_API_KEY"]  # OpenAI API key from secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 # Set up the social media search tool
 search_tool = SerperDevTool()
@@ -23,6 +23,7 @@ def create_llm():
 
 # Function to create agents for social media monitoring
 def create_agents(brand_name, llm):
+    # Remove any memory components here
     researcher = Agent(
         role="Social Media Researcher",
         goal=f"Research and gather information about {brand_name} from various sources",
