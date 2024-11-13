@@ -113,6 +113,8 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
+            # Log the entire result structure for troubleshooting
+            st.write("Raw Result:", result)  # Display the raw output for debugging
             return result  # Return full result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -134,28 +136,26 @@ brand_name = st.text_input("Enter the Brand or Topic Name")
 def display_report(result):
     st.header(f"Report for {brand_name}")
 
-    # Extracting fields directly from CrewOutput
-    research_findings = getattr(result, "Research Findings", None)
-    social_media_mentions = getattr(result, "Social Media Mentions", None)
-    sentiment_analysis = getattr(result, "Sentiment Analysis", None)
-    recommendations = getattr(result, "Recommendations", None)
+    # Inspect and display all available fields in CrewOutput
+    result_dict = result.json() if hasattr(result, "json") else {}
+    
+    # Output the raw JSON structure for reference
+    st.write("Parsed Result Structure:", result_dict)  # Display parsed structure for debugging
 
-    # Display Research Findings
-    if research_findings:
+    # Display each section if available
+    if "Research Findings" in result_dict:
         st.subheader("Research Findings")
-        st.write(research_findings)
-    else:
-        st.info("No research findings available.")
+        st.write(result_dict["Research Findings"])
 
-    # Display Social Media Monitoring Summary
-    if social_media_mentions:
+    if "Social Media Mentions" in result_dict:
         st.subheader("Social Media Monitoring Summary")
-        st.write(social_media_mentions)
+        st.write(result_dict["Social Media Mentions"])
 
         # Visualization: Mentions Breakdown
         try:
-            platforms = list(social_media_mentions.keys())
-            mentions = list(social_media_mentions.values())
+            mentions_data = result_dict["Social Media Mentions"]
+            platforms = list(mentions_data.keys())
+            mentions = list(mentions_data.values())
             fig, ax = plt.subplots()
             ax.bar(platforms, mentions, color="skyblue")
             ax.set_title("Social Media Mentions by Platform")
@@ -164,21 +164,14 @@ def display_report(result):
             st.pyplot(fig)
         except Exception as e:
             st.error(f"Error displaying social media mentions chart: {str(e)}")
-    else:
-        st.info("No social media mentions data available.")
 
-    # Display Sentiment Analysis
-    if sentiment_analysis:
+    if "Sentiment Analysis" in result_dict:
         st.subheader("Sentiment Analysis")
-        st.write(sentiment_analysis)
+        st.write(result_dict["Sentiment Analysis"])
 
         # Visualization: Sentiment Breakdown
         try:
-            sentiment_counts = {
-                "Positive": sentiment_analysis.get("Positive", 0),
-                "Neutral": sentiment_analysis.get("Neutral", 0),
-                "Negative": sentiment_analysis.get("Negative", 0)
-            }
+            sentiment_counts = result_dict["Sentiment Analysis"]
             fig, ax = plt.subplots()
             ax.pie(sentiment_counts.values(), labels=sentiment_counts.keys(), autopct="%1.1f%%", startangle=140)
             ax.axis("equal")
@@ -186,15 +179,10 @@ def display_report(result):
             st.pyplot(fig)
         except Exception as e:
             st.error(f"Error displaying sentiment chart: {str(e)}")
-    else:
-        st.info("No sentiment analysis data available.")
 
-    # Display Generated Recommendations
-    if recommendations:
+    if "Recommendations" in result_dict:
         st.subheader("Recommendations")
-        st.write(recommendations)
-    else:
-        st.info("No recommendations available.")
+        st.write(result_dict["Recommendations"])
 
 # Run the analysis on button click
 if st.button("Start Analysis"):
