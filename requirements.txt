@@ -3,3 +3,6 @@ openai
 python-dotenv
 requests
 crewai
+crewai-tools
+langchain-openai
+pysqlite3-binary
