@@ -113,6 +113,10 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
+            # Debug output for result structure
+            st.write("Debug: Crew.kickoff() output structure:")
+            st.write(result)  # Print the raw output to analyze the structure
+
             # Check if 'tasks' key exists in result
             if "tasks" in result:
                 return result["tasks"]
@@ -128,15 +132,6 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Function to visualize sentiment distribution
-def visualize_sentiment(sentiment_data):
-    sentiment_df = pd.DataFrame(sentiment_data)
-    sentiment_df.plot(kind='bar', x='Platform', y=['Positive', 'Negative', 'Neutral'], stacked=True)
-    plt.title("Sentiment Distribution Across Platforms")
-    plt.xlabel("Social Media Platform")
-    plt.ylabel("Number of Mentions")
-    st.pyplot(plt)
-
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
 st.write("Analyze a brand or topic with integrated social media monitoring, sentiment analysis, and report generation.")
@@ -151,39 +146,48 @@ if st.button("Start Analysis"):
         result = run_social_media_monitoring(brand_name)
         
         if result:
-            # Display Research Summary
-            st.subheader("Research Summary")
-            research_summary = result[0]["output"]
-            st.write(research_summary)
+            st.subheader("Final Report:")
+            
+            # Process and Display the Report
+            for task_name, task_output in result.items():
+                st.markdown(f"### {task_name}")
+                st.write(task_output)
+            
+            # Example: Display sentiment analysis as a pie chart
+            if "Sentiment Analysis" in result:
+                sentiment_data = result["Sentiment Analysis"]
+                sentiment_counts = {"Positive": 0, "Neutral": 0, "Negative": 0}
 
-            # Display Social Media Monitoring Summary
-            st.subheader("Social Media Monitoring Summary")
-            social_media_summary = result[1]["output"]
-            st.write(social_media_summary)
+                for line in sentiment_data.splitlines():
+                    for sentiment in sentiment_counts:
+                        if sentiment in line:
+                            sentiment_counts[sentiment] += 1
 
-            # Display Sentiment Analysis and Visualize
-            st.subheader("Sentiment Analysis by Platform")
-            sentiment_analysis = result[2]["output"]
+                # Plotting Pie Chart
+                st.write("### Sentiment Analysis Breakdown")
+                fig, ax = plt.subplots()
+                ax.pie(sentiment_counts.values(), labels=sentiment_counts.keys(), autopct="%1.1f%%", startangle=140)
+                ax.axis("equal")
+                st.pyplot(fig)
 
-            # Assume sentiment_analysis is a dict structured like:
-            # {"Twitter": {"Positive": 10, "Negative": 5, "Neutral": 3}, ...}
-            platform_sentiment_data = []
-            for platform, sentiments in sentiment_analysis.items():
-                platform_sentiment_data.append({
-                    "Platform": platform,
-                    "Positive": sentiments.get("Positive", 0),
-                    "Negative": sentiments.get("Negative", 0),
-                    "Neutral": sentiments.get("Neutral", 0),
-                })
+            # Example: Display social media mentions as a bar chart
+            if "Social Media Mentions" in result:
+                mentions_data = result["Social Media Mentions"]
+                platforms = ["Twitter", "Facebook", "Instagram", "Reddit", "LinkedIn"]
+                mention_counts = {platform: 0 for platform in platforms}
 
-            visualize_sentiment(platform_sentiment_data)
+                for line in mentions_data.splitlines():
+                    for platform in platforms:
+                        if platform in line:
+                            mention_counts[platform] += 1
 
-            # Display Comprehensive Report
-            st.subheader("Comprehensive Report")
-            final_report = result[3]["output"]
-            st.markdown(final_report, unsafe_allow_html=True)
+                # Plotting Bar Chart
+                st.write("### Social Media Mentions Breakdown")
+                fig, ax = plt.subplots()
+                ax.bar(mention_counts.keys(), mention_counts.values())
+                ax.set_ylabel("Number of Mentions")
+                st.pyplot(fig)
 
-            st.success("Analysis Complete")
         else:
             st.error("Failed to generate the report. Please try again.")
     else:
