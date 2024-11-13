@@ -2,5 +2,4 @@ streamlit
 openai
 python-dotenv
 requests
-pysqlite3-binary
 crewai
