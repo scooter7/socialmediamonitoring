@@ -1,3 +1,7 @@
+import sys
+import pysqlite3
+sys.modules["sqlite3"] = pysqlite3
+
 import os
 import time
 import streamlit as st
@@ -14,16 +18,15 @@ load_dotenv()
 os.environ["SERPER_API_KEY"] = st.secrets["SERPER_API_KEY"]
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# Set up the social media search tool
+# Initialize social media search tool
 search_tool = SerperDevTool()
 
-# Function to create a language model instance
+# Function to create LLM
 def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
-# Function to create agents for social media monitoring
+# Create agents with crewai for research and analysis
 def create_agents(brand_name, llm):
-    # Remove any memory components here
     researcher = Agent(
         role="Social Media Researcher",
         goal=f"Research and gather information about {brand_name} from various sources",
@@ -32,7 +35,7 @@ def create_agents(brand_name, llm):
         allow_delegation=False,
         tools=[search_tool],
         llm=llm,
-        max_iter=15  # Increased max iterations for thorough analysis
+        max_iter=15  # Adjust max iterations
     )
 
     social_media_monitor = Agent(
@@ -68,35 +71,35 @@ def create_agents(brand_name, llm):
 
     return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
 
-# Function to create tasks
+# Define tasks with crewai
 def create_tasks(brand_name, agents):
     research_task = Task(
         description=f"Research {brand_name} and provide a summary of their online presence, key information, and recent activities.",
         agent=agents[0],
-        expected_output="A structured summary containing: \n1. Overview\n2. Key platforms\n3. Recent activities\n4. Products or services\n5. News or controversies"
+        expected_output="A structured summary with key insights on recent activities, platform presence, and notable mentions."
     )
 
     monitoring_task = Task(
         description=f"Monitor social media platforms for mentions of '{brand_name}'. Provide a summary of the mentions.",
         agent=agents[1],
-        expected_output="Summary containing: \n1. Mention count\n2. Platform breakdown\n3. Top mentions\n4. Hashtags\n5. Notable influencers"
+        expected_output="Summary of mentions including counts, platforms, notable mentions, and hashtags."
     )
 
     sentiment_analysis_task = Task(
-        description=f"Analyze the sentiment of the social media mentions about {brand_name}. Classify as positive, negative, or neutral.",
+        description=f"Analyze the sentiment of the social media mentions about {brand_name}. Categorize them as positive, negative, or neutral.",
         agent=agents[2],
-        expected_output="Sentiment analysis report with: \n1. Sentiment distribution\n2. Positive themes\n3. Negative themes\n4. Suggestions"
+        expected_output="Sentiment distribution and notable themes."
     )
 
     report_generation_task = Task(
-        description=f"Generate a comprehensive report about {brand_name} based on research and sentiment analysis.",
+        description=f"Generate a comprehensive report about {brand_name} based on the research and sentiment analysis.",
         agent=agents[3],
-        expected_output="Structured report with: \n1. Executive Summary\n2. Social Media Analysis\n3. Sentiment Analysis\n4. Insights\n5. Recommendations"
+        expected_output="Comprehensive report including key insights and recommendations."
     )
 
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
-# Function to execute social media monitoring workflow
+# Run social media monitoring and sentiment analysis workflow
 def run_social_media_monitoring(brand_name, max_retries=3):
     llm = create_llm()
     agents = create_agents(brand_name, llm)
