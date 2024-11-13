@@ -113,16 +113,12 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-            # Debug output for result structure
-            st.write("Debug: Crew.kickoff() output structure:")
-            st.write(result)  # Print the raw output to analyze the structure
 
-            # Check if 'tasks' key exists in result
-            if "tasks" in result:
-                return result["tasks"]
-            else:
-                st.error("Tasks key not found in CrewOutput. Please verify the output structure.")
-                return None
+            # Debug: Display all structure for result
+            st.write("Debug: Full Crew.kickoff() Output:")
+            st.json(result)  # Displays raw JSON structure
+            
+            return result  # Return the full result to allow flexibility in parsing
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
@@ -146,14 +142,14 @@ if st.button("Start Analysis"):
         result = run_social_media_monitoring(brand_name)
         
         if result:
-            st.subheader("Final Report:")
-            
-            # Process and Display the Report
-            for task_name, task_output in result.items():
-                st.markdown(f"### {task_name}")
-                st.write(task_output)
-            
-            # Example: Display sentiment analysis as a pie chart
+            # Check for various output sections based on the actual result structure
+            if "tasks" in result:
+                tasks_result = result["tasks"]
+                for task in tasks_result:
+                    st.subheader(f"{task['description']}")
+                    st.write(task["output"])  # Assuming 'output' contains task results
+
+            # Example: Visualization of Sentiment Analysis if available
             if "Sentiment Analysis" in result:
                 sentiment_data = result["Sentiment Analysis"]
                 sentiment_counts = {"Positive": 0, "Neutral": 0, "Negative": 0}
