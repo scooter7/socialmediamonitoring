@@ -34,12 +34,13 @@ def monitor_social_media(topic):
 # Function to analyze sentiment using OpenAI's GPT-4o-mini model with chat completion
 def analyze_sentiment(text):
     sentiment_prompt = f"Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral: {text}"
-    sentiment = openai.chat.completions.create(
+    sentiment = openai.ChatCompletion.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": sentiment_prompt}],
         max_tokens=10
     )
-    return sentiment.choices[0].message['content'].strip()
+    # Access content directly from the message
+    return sentiment.choices[0].message.content.strip()
 
 # Function to compile and save the report to a CSV file in GitHub
 def generate_report(topic, research_summary, social_media_summary, sentiment_analysis):
