@@ -37,7 +37,7 @@ def monitor_social_media(topic):
 # Function to analyze sentiment using OpenAI
 def analyze_sentiment(text):
     sentiment_prompt = f"Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral: {text}"
-    sentiment = openai.Completion.create(engine="text-davinci-003", prompt=sentiment_prompt, max_tokens=10)
+    sentiment = openai.chat.completions.create(engine="text-davinci-003", prompt=sentiment_prompt, max_tokens=10)
     return sentiment.choices[0].text.strip()
 
 # Function to compile and save the report to a CSV file in GitHub
