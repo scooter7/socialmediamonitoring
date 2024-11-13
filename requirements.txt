@@ -1,7 +1,6 @@
 streamlit
 openai
 python-dotenv
-crewai
-crewai-tools
+requests
 langchain-openai
 langchain-community
