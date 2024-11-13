@@ -22,7 +22,7 @@ def create_llm(use_gpt=True):
 # Function to perform topic research using LLM
 def research_topic(topic, llm):
     prompt = f"Conduct a thorough research on the following topic: {topic}. Provide a summary with key points and insights."
-    response = llm.generate(prompt)
+    response = llm.generate([prompt])  # Pass prompt as a list
     return response
 
 # Function to monitor social media for mentions of a brand/topic
