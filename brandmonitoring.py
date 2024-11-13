@@ -89,7 +89,7 @@ def create_tasks(brand_name, agents):
     )
 
     sentiment_analysis_task = Task(
-        description=f"Analyze the sentiment of mentions about {brand_name}.",
+        description=f"Analyze the sentiment of the social media mentions about {brand_name}.",
         agent=agents[2],
         expected_output="Sentiment breakdown with notable themes."
     )
@@ -113,7 +113,12 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-            return result
+            # Check if 'tasks' key exists in result
+            if "tasks" in result:
+                return result["tasks"]
+            else:
+                st.error("Tasks key not found in CrewOutput. Please verify the output structure.")
+                return None
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
@@ -148,17 +153,17 @@ if st.button("Start Analysis"):
         if result:
             # Display Research Summary
             st.subheader("Research Summary")
-            research_summary = result["tasks"][0]["output"]
+            research_summary = result[0]["output"]
             st.write(research_summary)
 
             # Display Social Media Monitoring Summary
             st.subheader("Social Media Monitoring Summary")
-            social_media_summary = result["tasks"][1]["output"]
+            social_media_summary = result[1]["output"]
             st.write(social_media_summary)
 
             # Display Sentiment Analysis and Visualize
             st.subheader("Sentiment Analysis by Platform")
-            sentiment_analysis = result["tasks"][2]["output"]
+            sentiment_analysis = result[2]["output"]
 
             # Assume sentiment_analysis is a dict structured like:
             # {"Twitter": {"Positive": 10, "Negative": 5, "Neutral": 3}, ...}
@@ -175,7 +180,7 @@ if st.button("Start Analysis"):
 
             # Display Comprehensive Report
             st.subheader("Comprehensive Report")
-            final_report = result["tasks"][3]["output"]
+            final_report = result[3]["output"]
             st.markdown(final_report, unsafe_allow_html=True)
 
             st.success("Analysis Complete")
