@@ -37,7 +37,7 @@ def monitor_social_media(topic):
 # Function to analyze sentiment using OpenAI's GPT-4o-mini model with chat completion
 def analyze_sentiment(text):
     sentiment_prompt = f"Analyze the sentiment of the following text and classify it as Positive, Negative, or Neutral: {text}"
-    sentiment = openai.ChatCompletion.create(
+    sentiment = openai.chat.completions.create(
         model="gpt-4o-mini",  # Specifying the GPT-4o-mini model
         messages=[{"role": "user", "content": sentiment_prompt}],
         max_tokens=10
