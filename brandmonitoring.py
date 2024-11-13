@@ -133,27 +133,29 @@ brand_name = st.text_input("Enter the Brand or Topic Name")
 # Function to parse and display report data
 def display_report(result):
     st.header(f"Report for {brand_name}")
-    
-    # Debugging: Show the keys of the result
-    st.write("Result Keys:", list(result.keys()))
+
+    # Extracting fields directly from CrewOutput
+    research_findings = getattr(result, "Research Findings", None)
+    social_media_mentions = getattr(result, "Social Media Mentions", None)
+    sentiment_analysis = getattr(result, "Sentiment Analysis", None)
+    recommendations = getattr(result, "Recommendations", None)
 
     # Display Research Findings
-    if "Research Findings" in result:
+    if research_findings:
         st.subheader("Research Findings")
-        st.write(result["Research Findings"])
+        st.write(research_findings)
     else:
         st.info("No research findings available.")
 
     # Display Social Media Monitoring Summary
-    if "Social Media Mentions" in result:
+    if social_media_mentions:
         st.subheader("Social Media Monitoring Summary")
-        mention_data = result["Social Media Mentions"]
-        st.write(mention_data)
+        st.write(social_media_mentions)
 
         # Visualization: Mentions Breakdown
         try:
-            platforms = list(mention_data.keys())
-            mentions = list(mention_data.values())
+            platforms = list(social_media_mentions.keys())
+            mentions = list(social_media_mentions.values())
             fig, ax = plt.subplots()
             ax.bar(platforms, mentions, color="skyblue")
             ax.set_title("Social Media Mentions by Platform")
@@ -166,17 +168,16 @@ def display_report(result):
         st.info("No social media mentions data available.")
 
     # Display Sentiment Analysis
-    if "Sentiment Analysis" in result:
+    if sentiment_analysis:
         st.subheader("Sentiment Analysis")
-        sentiment_data = result["Sentiment Analysis"]
-        st.write(sentiment_data)
+        st.write(sentiment_analysis)
 
         # Visualization: Sentiment Breakdown
         try:
             sentiment_counts = {
-                "Positive": sentiment_data.get("Positive", 0),
-                "Neutral": sentiment_data.get("Neutral", 0),
-                "Negative": sentiment_data.get("Negative", 0)
+                "Positive": sentiment_analysis.get("Positive", 0),
+                "Neutral": sentiment_analysis.get("Neutral", 0),
+                "Negative": sentiment_analysis.get("Negative", 0)
             }
             fig, ax = plt.subplots()
             ax.pie(sentiment_counts.values(), labels=sentiment_counts.keys(), autopct="%1.1f%%", startangle=140)
@@ -189,9 +190,9 @@ def display_report(result):
         st.info("No sentiment analysis data available.")
 
     # Display Generated Recommendations
-    if "Recommendations" in result:
+    if recommendations:
         st.subheader("Recommendations")
-        st.write(result["Recommendations"])
+        st.write(recommendations)
     else:
         st.info("No recommendations available.")
 
