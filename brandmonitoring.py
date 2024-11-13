@@ -113,12 +113,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-
-            # Debug: Display all structure for result
-            st.write("Debug: Full Crew.kickoff() Output:")
-            st.json(result)  # Displays raw JSON structure
-            
-            return result  # Return the full result to allow flexibility in parsing
+            return result  # Return full result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
@@ -135,6 +130,56 @@ st.write("Analyze a brand or topic with integrated social media monitoring, sent
 # User input for brand or topic
 brand_name = st.text_input("Enter the Brand or Topic Name")
 
+# Function to parse and display report data
+def display_report(result):
+    st.header(f"Report for {brand_name}")
+    
+    # Display Research Findings
+    if "Research Findings" in result:
+        st.subheader("Research Findings")
+        st.write(result["Research Findings"])
+
+    # Display Social Media Monitoring Summary
+    if "Social Media Mentions" in result:
+        st.subheader("Social Media Monitoring Summary")
+        st.write(result["Social Media Mentions"])
+
+    # Visualization: Mentions Breakdown (Assuming it’s structured as a dictionary in `Social Media Mentions`)
+        mention_data = result["Social Media Mentions"]
+        platforms = list(mention_data.keys())
+        mentions = list(mention_data.values())
+
+        fig, ax = plt.subplots()
+        ax.bar(platforms, mentions, color="skyblue")
+        ax.set_title("Social Media Mentions by Platform")
+        ax.set_xlabel("Platform")
+        ax.set_ylabel("Mentions")
+        st.pyplot(fig)
+
+    # Display Sentiment Analysis
+    if "Sentiment Analysis" in result:
+        st.subheader("Sentiment Analysis")
+        sentiment_data = result["Sentiment Analysis"]
+        st.write(sentiment_data)
+
+    # Visualization: Sentiment Breakdown (Pie Chart)
+        sentiment_counts = {
+            "Positive": sentiment_data.get("Positive", 0),
+            "Neutral": sentiment_data.get("Neutral", 0),
+            "Negative": sentiment_data.get("Negative", 0)
+        }
+
+        fig, ax = plt.subplots()
+        ax.pie(sentiment_counts.values(), labels=sentiment_counts.keys(), autopct="%1.1f%%", startangle=140)
+        ax.axis("equal")
+        ax.set_title("Sentiment Distribution")
+        st.pyplot(fig)
+
+    # Display Generated Recommendations
+    if "Recommendations" in result:
+        st.subheader("Recommendations")
+        st.write(result["Recommendations"])
+
 # Run the analysis on button click
 if st.button("Start Analysis"):
     if brand_name:
@@ -142,48 +187,7 @@ if st.button("Start Analysis"):
         result = run_social_media_monitoring(brand_name)
         
         if result:
-            # Check for various output sections based on the actual result structure
-            if "tasks" in result:
-                tasks_result = result["tasks"]
-                for task in tasks_result:
-                    st.subheader(f"{task['description']}")
-                    st.write(task["output"])  # Assuming 'output' contains task results
-
-            # Example: Visualization of Sentiment Analysis if available
-            if "Sentiment Analysis" in result:
-                sentiment_data = result["Sentiment Analysis"]
-                sentiment_counts = {"Positive": 0, "Neutral": 0, "Negative": 0}
-
-                for line in sentiment_data.splitlines():
-                    for sentiment in sentiment_counts:
-                        if sentiment in line:
-                            sentiment_counts[sentiment] += 1
-
-                # Plotting Pie Chart
-                st.write("### Sentiment Analysis Breakdown")
-                fig, ax = plt.subplots()
-                ax.pie(sentiment_counts.values(), labels=sentiment_counts.keys(), autopct="%1.1f%%", startangle=140)
-                ax.axis("equal")
-                st.pyplot(fig)
-
-            # Example: Display social media mentions as a bar chart
-            if "Social Media Mentions" in result:
-                mentions_data = result["Social Media Mentions"]
-                platforms = ["Twitter", "Facebook", "Instagram", "Reddit", "LinkedIn"]
-                mention_counts = {platform: 0 for platform in platforms}
-
-                for line in mentions_data.splitlines():
-                    for platform in platforms:
-                        if platform in line:
-                            mention_counts[platform] += 1
-
-                # Plotting Bar Chart
-                st.write("### Social Media Mentions Breakdown")
-                fig, ax = plt.subplots()
-                ax.bar(mention_counts.keys(), mention_counts.values())
-                ax.set_ylabel("Number of Mentions")
-                st.pyplot(fig)
-
+            display_report(result)
         else:
             st.error("Failed to generate the report. Please try again.")
     else:
