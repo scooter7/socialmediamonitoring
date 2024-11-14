@@ -43,12 +43,10 @@ def fetch_mentions(brand_name):
 
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
-    # Debug: Show raw tool output before parsing
-    st.write("Raw tool output:", tool_output)
-    # Adjust regex to capture mentions if the format has changed
+    st.write("Raw tool output:", tool_output)  # Debug
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
-    st.write("Parsed mentions:", parsed_results)  # Debug: Show parsed mentions
+    st.write("Parsed mentions:", parsed_results)  # Debug
     return parsed_results
 
 # Create agents with CrewAI for research and analysis
@@ -151,22 +149,16 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-import re
-import json
-
-# Function to parse and display social media mention information from unstructured text
+# Parse and display online mentions in a structured format
 def parse_mentions_text(raw_text):
-    # Match common mention fields in the raw text for cleaner display
     mention_blocks = re.findall(
         r"(?:\- \*\*|\*\*)?(Counts|Platforms|Notable Mentions|Hashtags):\s+(.*?)(?=\n\n|\n\-\-|\Z)",
         raw_text,
         re.DOTALL
     )
     
-    # Process each identified block and structure it for display
     structured_mentions = {}
     for block_type, content in mention_blocks:
-        # Clean up whitespace and bullet points
         content = re.sub(r"(\n\s*\-|\n|\s{2,})", " ", content).strip()
         structured_mentions[block_type] = content
 
@@ -189,7 +181,6 @@ def display_formatted_report(brand_name, result):
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
     
-    # Parse the unstructured text for online mentions
     if mentions_output:
         structured_mentions = parse_mentions_text(mentions_output)
         if structured_mentions:
@@ -210,56 +201,31 @@ def display_formatted_report(brand_name, result):
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
     
     try:
-        # Parse JSON and display themes and recommendations if available
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         
-        # Extract notable themes and recommendations
-        themes = report_data.get('UniversityOfOregonSentimentAnalysis', {}).get('KeyInsights', {}).get('NotableThemes', [])
-        recommendations = report_data.get('UniversityOfOregonSentimentAnalysis', {}).get('Recommendations', {})
-
         # Display notable themes
+        themes = report_data.get('SentimentAnalysis', {}).get('KeyInsights', {}).get('NotableThemes', [])
         if themes:
             st.write("**Notable Themes:**")
             for theme in themes:
-                theme_title = theme.get("Theme", "No Theme Title")
-                insight = theme.get("Insight", "No Insight Available")
-                st.write(f"- **{theme_title}**: {insight}")
+                st.write(f"- **{theme.get('Theme', 'No Theme Title')}:** {theme.get('Insight', 'No Insight Available')}")
         else:
             st.write("No notable themes available.")
 
         # Display recommendations
+        recommendations = report_data.get('SentimentAnalysis', {}).get('Recommendations', {})
         if recommendations:
             st.write("**Recommendations:**")
             for rec_key, rec_value in recommendations.items():
                 st.write(f"- **{rec_key.replace('_', ' ').title()}:** {rec_value}")
         else:
             st.write("No recommendations available.")
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         st.error("Error parsing JSON data. Please check the JSON format.")
         st.write("Raw JSON data:")
         st.write(report_output)
     except Exception as e:
         st.error(f"Unexpected error: {e}")
-
-# Streamlit app interface
-st.title("Online and Sentiment Analysis Report")
-st.write("Analyze a brand or topic with integrated online monitoring, sentiment analysis, and report generation.")
-
-# User input for brand or topic
-brand_name = st.text_input("Enter the Brand or Topic Name")
-
-# Run the analysis on button click
-if st.button("Start Analysis"):
-    if brand_name:
-        st.write("Starting online monitoring and sentiment analysis...")
-        result = run_social_media_monitoring(brand_name)
-        
-        if result:
-            display_formatted_report(brand_name, result)
-        else:
-            st.error("Failed to generate the report. Please try again.")
-    else:
-        st.error("Please enter a brand or topic name to proceed.")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
@@ -280,5 +246,3 @@ if st.button("Start Analysis", key="start_analysis_button"):
             st.error("Failed to generate the report. Please try again.")
     else:
         st.error("Please enter a brand or topic name to proceed.")
-
-
