@@ -27,6 +27,64 @@ search_tool = SerperDevTool()
 def create_llm():
     return ChatOpenAI(model="gpt-4")
 
+# Fetch social media mentions and news
+def fetch_mentions(brand_name):
+    sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
+    mentions = {}
+    for source in sources:
+        # Placeholder for actual API calls or search tool usage
+        mentions[source] = search_tool.search(f"{brand_name} site:{source.lower()}.com")
+    return mentions
+
+# Analyze sentiment by platform
+def analyze_sentiment_by_platform(mentions):
+    sentiment_results = {}
+    for platform, posts in mentions.items():
+        platform_sentiments = {"positive": 0, "negative": 0, "neutral": 0}
+        for post in posts:
+            sentiment = sentiment_analyzer.analyze(post["text"])
+            platform_sentiments[sentiment] += 1
+        sentiment_results[platform] = platform_sentiments
+    return sentiment_results
+
+# Display sentiment charts per platform
+def display_sentiment_charts(sentiment_results):
+    for platform, sentiments in sentiment_results.items():
+        st.subheader(f"Sentiment Distribution on {platform}")
+        labels = ['Positive', 'Negative', 'Neutral']
+        sizes = [sentiments["positive"], sentiments["negative"], sentiments["neutral"]]
+        
+        fig, ax = plt.subplots()
+        ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+        ax.axis('equal')
+        st.pyplot(fig)
+
+# JSON parsing with error handling
+def parse_report_output(report_output):
+    try:
+        json_str = report_output.strip('```json\n').strip('\n```')
+        report_data = json.loads(json_str)
+        return report_data
+    except json.JSONDecodeError as e:
+        st.write("Error parsing JSON report.")
+        st.write(str(e))
+        return None
+
+# Display Key Themes and Recommendations
+def display_key_themes_and_recommendations(report_data):
+    themes = report_data.get('notable_themes', {})
+    recommendations = report_data.get('conclusion', {}).get('recommendations', [])
+    
+    # Display Key Themes
+    st.subheader("Key Themes")
+    for theme, details in themes.items():
+        st.write(f"- **{theme.replace('_', ' ').title()}**: {details.get('description', 'No description provided')}")
+
+    # Display Recommendations
+    st.subheader("Recommendations")
+    for rec in recommendations:
+        st.write(f"- {rec['recommendation']}")
+
 # Create agents with crewai for research and analysis
 def create_agents(brand_name, llm):
     researcher = Agent(
@@ -141,56 +199,24 @@ def display_formatted_report(brand_name, result):
 
     # Section 2: Social Media Mentions
     st.subheader("2. Social Media Mentions")
-    mentions_output = task_outputs[1].raw
-    st.write(mentions_output)
+    mentions = fetch_mentions(brand_name)
+    for platform, posts in mentions.items():
+        st.write(f"{platform}: {len(posts)} mentions")
 
-    # Section 3: Sentiment Analysis
-    st.subheader("3. Sentiment Analysis")
-    sentiment_output = task_outputs[2].raw
-    st.write(sentiment_output)
-
-    # Extract sentiment percentages for visualization
-    try:
-        # Simple parsing to extract percentages
-        positive_pct = int(sentiment_output.split('Positive Mentions: ')[1].split('%')[0])
-        negative_pct = int(sentiment_output.split('Negative Mentions: ')[1].split('%')[0])
-        neutral_pct = int(sentiment_output.split('Neutral Mentions: ')[1].split('%')[0])
-
-        # Pie chart visualization
-        st.subheader("Sentiment Distribution")
-        labels = ['Positive', 'Negative', 'Neutral']
-        sizes = [positive_pct, negative_pct, neutral_pct]
-        fig, ax = plt.subplots()
-        ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
-        ax.axis('equal')
-        st.pyplot(fig)
-    except Exception as e:
-        st.write("Unable to extract sentiment percentages for visualization.")
+    # Section 3: Sentiment Analysis by Channel
+    st.subheader("3. Sentiment Analysis by Channel")
+    sentiment_results = analyze_sentiment_by_platform(mentions)
+    display_sentiment_charts(sentiment_results)
 
     # Section 4: Key Themes Identified and Recommendations
     st.subheader("4. Key Themes and Recommendations")
     report_output_raw = task_outputs[3].raw
-
-    # Extract JSON data from the raw output
-    try:
-        json_str = report_output_raw.strip('```json\n').strip('\n```')
-        report_data = json.loads(json_str)
-        themes = report_data['report']['notable_themes']
-        recommendations = report_data['report']['conclusion']['recommendations']
-
-        # Display themes
-        st.write("**Notable Themes:**")
-        for theme_key, theme_info in themes.items():
-            st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
-
-        # Display recommendations
-        st.write("**Recommendations:**")
-        for rec in recommendations:
-            st.write(f"- {rec['recommendation']}")
-
-    except Exception as e:
-        st.write("Error parsing the JSON-formatted report.")
-        st.write(str(e))
+    report_data = parse_report_output(report_output_raw)
+    
+    if report_data:
+        display_key_themes_and_recommendations(report_data)
+    else:
+        st.error("Error parsing the JSON-formatted report.")
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
