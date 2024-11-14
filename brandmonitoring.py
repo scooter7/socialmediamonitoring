@@ -34,7 +34,8 @@ def fetch_mentions(brand_name):
     for source in sources:
         try:
             result = search_tool.search(brand_name)
-            mentions[source] = parse_tool_output(result) if result else []
+            st.write(f"Debug - Result for {source}:", result)  # Debugging statement
+            mentions[source] = result if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
             mentions[source] = []  # Store an empty list if an error occurs
@@ -146,12 +147,15 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display formatted report based on task outputs
+# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
     # Extract task outputs
     task_outputs = result.tasks_output
+    # Log the task outputs to check if they contain data
+    st.write("Debug - Task Outputs:", task_outputs)
 
     # Section 1: Research Findings
     st.subheader("1. Research Findings")
@@ -171,7 +175,6 @@ def display_formatted_report(brand_name, result):
     st.subheader("3. Sentiment Analysis")
     sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
     st.write(sentiment_output)
-
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
