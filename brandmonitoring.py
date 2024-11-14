@@ -10,6 +10,7 @@ from crewai import Agent, Task, Crew
 from crewai_tools import SerperDevTool
 from langchain_openai import ChatOpenAI
 import openai
+import matplotlib.pyplot as plt
 import json
 
 # Load environment variables from .env file
@@ -24,50 +25,50 @@ search_tool = SerperDevTool()
 
 # Function to create LLM
 def create_llm():
-    return ChatOpenAI(model="gpt-4o-mini")
+    return ChatOpenAI(model="gpt-4")
 
 # Create agents with crewai for research and analysis
 def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
-        goal=f"Research and gather information about {brand_name} from various sources",
+        goal=f"Research and gather information about {brand_name} from various sources.",
         backstory="You are an expert researcher with a knack for finding relevant information quickly.",
-        verbose=True,
+        verbose=False,
         allow_delegation=False,
         tools=[search_tool],
         llm=llm,
-        max_iter=15
+        max_iter=10
     )
 
     social_media_monitor = Agent(
         role="Social Media Monitor",
-        goal=f"Monitor social media platforms for mentions of {brand_name}",
+        goal=f"Monitor social media platforms for mentions of {brand_name}.",
         backstory="You are an experienced social media analyst with keen eyes for trends and mentions.",
-        verbose=True,
+        verbose=False,
         allow_delegation=False,
         tools=[search_tool],
         llm=llm,
-        max_iter=15
+        max_iter=10
     )
 
     sentiment_analyzer = Agent(
         role="Sentiment Analyzer",
-        goal=f"Analyze the sentiment of social media mentions about {brand_name}",
+        goal=f"Analyze the sentiment of social media mentions about {brand_name}.",
         backstory="You are an expert in natural language processing and sentiment analysis.",
-        verbose=True,
+        verbose=False,
         allow_delegation=False,
         llm=llm,
-        max_iter=15
+        max_iter=10
     )
 
     report_generator = Agent(
         role="Report Generator",
-        goal=f"Generate comprehensive reports based on the analysis of {brand_name}",
+        goal=f"Generate a comprehensive report based on the analysis of {brand_name}.",
         backstory="You are a skilled data analyst and report writer, adept at presenting insights clearly.",
-        verbose=True,
+        verbose=False,
         allow_delegation=False,
         llm=llm,
-        max_iter=15
+        max_iter=10
     )
 
     return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
@@ -109,22 +110,12 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     crew = Crew(
         agents=agents,
         tasks=tasks,
-        verbose=True
+        verbose=False
     )
 
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-
-            # Check structure of result and debug
-            if not result or "tasks_output" not in dir(result):
-                st.write("Debug: Result object or tasks_output is missing")
-                continue
-
-            # Ensure each task's output is accessible
-            for idx, task_output in enumerate(result.tasks_output):
-                st.write(f"Debug: Task {idx + 1} - {task_output.raw}")
-
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -138,22 +129,68 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 # Format the final report nicely
 def display_formatted_report(brand_name, result):
     st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
-    
+    st.write("---")
+
+    # Extract task outputs
+    task_outputs = result.tasks_output
+
+    # Section 1: Research Findings
+    st.subheader("1. Research Findings")
+    research_output = task_outputs[0].raw
+    st.write(research_output)
+
+    # Section 2: Social Media Mentions
+    st.subheader("2. Social Media Mentions")
+    mentions_output = task_outputs[1].raw
+    st.write(mentions_output)
+
+    # Section 3: Sentiment Analysis
+    st.subheader("3. Sentiment Analysis")
+    sentiment_output = task_outputs[2].raw
+    st.write(sentiment_output)
+
+    # Extract sentiment percentages for visualization
     try:
-        st.write("Debug: Result Keys")
-        st.write(list(result.tasks_output))
+        # Simple parsing to extract percentages
+        positive_pct = int(sentiment_output.split('Positive Mentions: ')[1].split('%')[0])
+        negative_pct = int(sentiment_output.split('Negative Mentions: ')[1].split('%')[0])
+        neutral_pct = int(sentiment_output.split('Neutral Mentions: ')[1].split('%')[0])
 
-        for idx, task_output in enumerate(result.tasks_output):
-            # Print each part of the task output
-            task_summary = getattr(task_output, "summary", "No summary available.")
-            task_raw = getattr(task_output, "raw", "No raw output available.")
-            st.subheader(f"Section {idx + 1}: Task {idx + 1} Output")
-            st.write(task_summary)
-            st.write(task_raw)
+        # Pie chart visualization
+        st.subheader("Sentiment Distribution")
+        labels = ['Positive', 'Negative', 'Neutral']
+        sizes = [positive_pct, negative_pct, neutral_pct]
+        fig, ax = plt.subplots()
+        ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+        ax.axis('equal')
+        st.pyplot(fig)
+    except Exception as e:
+        st.write("Unable to extract sentiment percentages for visualization.")
 
-    except AttributeError as e:
-        st.error("There was an error accessing the output structure.")
-        st.write("Debug: Error Details:", str(e))
+    # Section 4: Key Themes Identified and Recommendations
+    st.subheader("4. Key Themes and Recommendations")
+    report_output_raw = task_outputs[3].raw
+
+    # Extract JSON data from the raw output
+    try:
+        json_str = report_output_raw.strip('```json\n').strip('\n```')
+        report_data = json.loads(json_str)
+        themes = report_data['report']['notable_themes']
+        recommendations = report_data['report']['conclusion']['recommendations']
+
+        # Display themes
+        st.write("**Notable Themes:**")
+        for theme_key, theme_info in themes.items():
+            st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
+
+        # Display recommendations
+        st.write("**Recommendations:**")
+        for rec in recommendations:
+            st.write(f"- {rec['recommendation']}")
+
+    except Exception as e:
+        st.write("Error parsing the JSON-formatted report.")
+        st.write(str(e))
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
