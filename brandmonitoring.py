@@ -197,26 +197,22 @@ def display_formatted_report(brand_name, result):
             st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
             st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
 
-        # Key Insights
-        st.write("**Key Insights**")
+        # Display Key Insights only if available
         key_insights = report.get("key_insights", {})
         if key_insights:
+            st.write("**Key Insights**")
             for key, insight in key_insights.items():
                 st.write(f"- **{key.replace('_', ' ').title()}**")
                 st.write(f"  - Description: {insight.get('description', 'No description available')}")
                 st.write(f"  - Feedback: {insight.get('feedback', 'No feedback available')}")
-        else:
-            st.write("No key insights available.")
 
-        # Recommendations
-        st.write("**Recommendations**")
+        # Display Recommendations only if available
         recommendations = report.get("recommendations", [])
         if recommendations:
+            st.write("**Recommendations**")
             for recommendation in recommendations:
                 st.write(f"- **{recommendation.get('action', 'No action specified')}**")
                 st.write(f"  - {recommendation.get('details', 'No additional details provided')}")
-        else:
-            st.write("No recommendations available.")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
