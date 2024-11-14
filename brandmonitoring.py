@@ -180,7 +180,12 @@ def display_formatted_report(brand_name, result):
 
     # Section 4: Key Themes and Recommendations
 st.subheader("4. Key Themes and Recommendations")
-report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
+
+# Check if task_outputs has enough items to access task_outputs[3]
+if len(task_outputs) > 3 and task_outputs[3]:
+    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
+else:
+    report_output = "No report data available"
 
 try:
     # Clean JSON output by removing code block markers and parsing JSON directly
