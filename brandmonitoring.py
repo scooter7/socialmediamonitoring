@@ -174,33 +174,41 @@ def display_formatted_report(brand_name, result):
 
                 # Display structured information
                 st.write("**Sentiment Distribution**")
-                sentiment_distribution = report_data["sentiment_analysis"]["sentiment_distribution"]
-                st.write(f"- Positive Mentions: {sentiment_distribution['positive_mentions']['percentage']}%")
-                st.write(f"- Neutral Mentions: {sentiment_distribution['neutral_mentions']['percentage']}%")
-                st.write(f"- Negative Mentions: {sentiment_distribution['negative_mentions']['percentage']}%")
+                sentiment_distribution = report_data.get("sentiment_analysis", {}).get("sentiment_distribution", {})
+                st.write(f"- Positive Mentions: {sentiment_distribution.get('positive_mentions', {}).get('percentage', 'N/A')}%")
+                st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral_mentions', {}).get('percentage', 'N/A')}%")
+                st.write(f"- Negative Mentions: {sentiment_distribution.get('negative_mentions', {}).get('percentage', 'N/A')}%")
 
                 st.write("**Key Insights**")
                 for sentiment_type, insights in sentiment_distribution.items():
-                    st.write(f"- **{sentiment_type.capitalize()}**: Key Insights")
-                    for insight in insights.get("key_insights", []):
-                        st.write(f"  - {insight}")
+                    if "key_insights" in insights:
+                        st.write(f"- **{sentiment_type.capitalize()}**: Key Insights")
+                        for insight in insights.get("key_insights", []):
+                            st.write(f"  - {insight}")
 
                 st.write("**Notable Themes**")
-                for theme_name, theme_details in report_data["sentiment_analysis"]["notable_themes"].items():
-                    st.write(f"- **{theme_name.replace('_', ' ').title()}**")
-                    st.write(f"  - Description: {theme_details['description']}")
-                    st.write(f"  - Hashtags: {', '.join(theme_details.get('hashtags', []))}")
-                    st.write(f"  - Impact: {theme_details.get('impact', '')}")
-                    st.write(f"  - Concerns: {', '.join(theme_details.get('concerns', [])) if 'concerns' in theme_details else ''}")
-                    st.write(f"  - Recommendation: {theme_details.get('recommendation', '')}")
+                notable_themes = report_data.get("notable_themes", [])
+                if notable_themes:
+                    for theme in notable_themes:
+                        st.write(f"- **{theme.get('theme', 'Unknown Theme')}**")
+                        st.write(f"  - Description: {theme.get('description', 'No description available')}")
+                else:
+                    st.write("No notable themes available.")
+
+                st.write("**Recommendations**")
+                recommendations = report_data.get("recommendations", [])
+                if recommendations:
+                    for recommendation in recommendations:
+                        st.write(f"- **{recommendation.get('recommendation', 'General Recommendation')}**")
+                        st.write(f"  - {recommendation.get('description', 'No additional details provided')}")
+                else:
+                    st.write("No recommendations available.")
 
                 st.write("**Conclusion**")
-                conclusion = report_data["conclusion"]
-                st.write(f"- Overall Sentiment: {conclusion['overall_sentiment']}")
-                st.write(f"- Strengths: {', '.join(conclusion['strengths'])}")
-                st.write(f"- Areas for Improvement: {', '.join(conclusion['areas_for_improvement'])}")
-                st.write(f"- Strategic Recommendation: {conclusion['strategic_recommendation']}")
-                
+                overall_insights = report_data.get("overall_insights", {})
+                st.write(f"- Overall Sentiment: {overall_insights.get('description', 'No overall sentiment description')}")
+                st.write(f"- Strategic Focus: {overall_insights.get('strategic_focus', 'No strategic focus information')}")
+
             except (json.JSONDecodeError, KeyError, AttributeError) as e:
                 st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
                 st.write("Debugging Information:")
