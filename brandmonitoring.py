@@ -179,18 +179,18 @@ def display_formatted_report(brand_name, task_outputs):
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs and len(task_outputs) > 3 else "No report data available"
 
-    # Display raw output for debugging purposes
+    # Debug: Display raw output for troubleshooting
     st.write("**Raw Report Output**", report_output)
 
     try:
-        # Remove backticks and clean up any extraneous whitespace
-        report_output_cleaned = report_output.replace("```json", "").replace("```", "").strip()
+        # Thorough cleaning to remove backticks, markdown artifacts, and any extraneous whitespace
+        report_output_cleaned = re.sub(r'```json|```|\n', '', report_output).strip()
 
-        # Check if the cleaned string is valid JSON
+        # Attempt to parse the cleaned string as JSON
         try:
             report_data = json.loads(report_output_cleaned)
         except json.JSONDecodeError:
-            st.error("Error: Unable to parse JSON. Please check JSON format.")
+            st.error("Error: Unable to parse JSON. Please ensure the output is valid JSON format.")
             return
 
         # Display structured information if JSON parsed successfully
