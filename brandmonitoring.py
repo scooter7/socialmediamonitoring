@@ -207,6 +207,53 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
+# Display formatted report based on task outputs
+def display_formatted_report(brand_name, result):
+    st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
+    st.write("---")
+
+    # Extract task outputs
+    task_outputs = result.tasks_output
+
+    # Section 1: Research Findings
+    st.subheader("1. Research Findings")
+    research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
+    st.write(research_output)
+
+    # Section 2: Social Media Mentions
+    st.subheader("2. Social Media Mentions")
+    mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
+    st.write(mentions_output)
+
+    # Section 3: Sentiment Analysis
+    st.subheader("3. Sentiment Analysis")
+    sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
+    st.write(sentiment_output)
+
+    # Section 4: Key Themes and Recommendations
+    st.subheader("4. Key Themes and Recommendations")
+    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
+    
+    # Try to parse JSON data from the report generator output
+    try:
+        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+        themes = report_data.get('notable_themes', {})
+        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
+
+        # Display themes
+        st.write("**Notable Themes:**")
+        for theme_key, theme_info in themes.items():
+            st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
+
+        # Display recommendations
+        st.write("**Recommendations:**")
+        for rec in recommendations:
+            st.write(f"- {rec['recommendation']}")
+
+    except (json.JSONDecodeError, KeyError) as e:
+        st.write("Error parsing the JSON-formatted report.")
+        st.write(report_output)
+
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
 st.write("Analyze a brand or topic with integrated social media monitoring, sentiment analysis, and report generation.")
