@@ -38,9 +38,9 @@ def create_llm():
 # Enhanced function to fetch social media mentions and news with error handling
 def fetch_mentions(brand_name):
     try:
-        # Run search tool
-        tool_output = search_tool.run(brand_name)
-        # Parse the output
+        # Provide input as a dictionary, assuming `search_query` is the required key
+        tool_input = {"search_query": brand_name}
+        tool_output = search_tool.run(tool_input)  # Provide tool input as a single dictionary
         mentions = parse_tool_output(tool_output)
         return mentions
     except Exception as e:
