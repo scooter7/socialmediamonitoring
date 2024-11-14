@@ -54,103 +54,151 @@ def parse_tool_output(tool_output):
     entries = re.findall(r"Title: (.+?)\n\nLink: (.+?)\n\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
 
-# Display mentions in readable format
-def display_mentions(mentions):
-    st.subheader("2. Social Media Mentions")
-    for platform, parsed_results in mentions.items():
-        st.markdown(f"**{platform}**")
-        if parsed_results:
-            for entry in parsed_results:
-                st.markdown(f"**{entry['title']}**")
-                st.markdown(f"[Read more]({entry['link']})")
-                st.write(entry['snippet'])
-                st.write("---")
-        else:
-            st.write(f"No mentions data available for {platform}.")
+# Create agents with crewai for research and analysis
+def create_agents(brand_name, llm):
+    researcher = Agent(
+        role="Social Media Researcher",
+        goal=f"Research and gather information about {brand_name} from various sources.",
+        backstory="You are an expert researcher with a knack for finding relevant information quickly.",
+        verbose=True,
+        allow_delegation=False,
+        tools=[search_tool],
+        llm=llm,
+        max_iter=15
+    )
 
-# Analyze sentiment by platform
-def analyze_sentiment_by_platform(mentions):
-    sentiment_results = {}
-    for platform, posts in mentions.items():
-        platform_sentiments = {"positive": 0, "negative": 0, "neutral": 0}
-        for post in posts:
-            snippet = post["snippet"]
-            sentiment_score = sentiment_analyzer.polarity_scores(snippet)
-            if sentiment_score["compound"] >= 0.05:
-                platform_sentiments["positive"] += 1
-            elif sentiment_score["compound"] <= -0.05:
-                platform_sentiments["negative"] += 1
-            else:
-                platform_sentiments["neutral"] += 1
-        sentiment_results[platform] = platform_sentiments
-    return sentiment_results
+    social_media_monitor = Agent(
+        role="Social Media Monitor",
+        goal=f"Monitor social media platforms for mentions of {brand_name}.",
+        backstory="You are an experienced social media analyst with keen eyes for trends and mentions.",
+        verbose=True,
+        allow_delegation=False,
+        tools=[search_tool],
+        llm=llm,
+        max_iter=15
+    )
 
-# Display sentiment charts per platform
-def display_sentiment_charts(sentiment_results):
-    for platform, sentiments in sentiment_results.items():
-        st.subheader(f"Sentiment Distribution on {platform}")
-        labels = ['Positive', 'Negative', 'Neutral']
-        sizes = [sentiments.get("positive", 0), sentiments.get("negative", 0), sentiments.get("neutral", 0)]
-        total_mentions = sum(sizes)
-        if total_mentions == 0:
-            st.write(f"No sentiment data available for {platform}.")
-            continue
-        fig, ax = plt.subplots()
-        ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
-        ax.axis('equal')
-        st.pyplot(fig)
+    sentiment_analyzer = Agent(
+        role="Sentiment Analyzer",
+        goal=f"Analyze the sentiment of social media mentions about {brand_name}.",
+        backstory="You are an expert in natural language processing and sentiment analysis.",
+        verbose=True,
+        allow_delegation=False,
+        llm=llm,
+        max_iter=15
+    )
 
-# Extract key themes from mentions
-def extract_key_themes(mentions):
-    text_data = [post["snippet"] for platform_posts in mentions.values() for post in platform_posts]
-    if not text_data:
-        st.warning("No text data available in mentions to extract themes.")
-        return {}
+    report_generator = Agent(
+        role="Report Generator",
+        goal=f"Generate comprehensive reports based on the analysis of {brand_name}.",
+        backstory="You are a skilled data analyst and report writer, adept at presenting insights clearly.",
+        verbose=True,
+        allow_delegation=False,
+        llm=llm,
+        max_iter=15
+    )
 
-    vectorizer = CountVectorizer(stop_words='english', max_features=10)
-    X = vectorizer.fit_transform(text_data)
-    themes = {word: {"description": f"High frequency mention of '{word}'"} for word in vectorizer.get_feature_names_out()}
-    return themes
+    return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
 
-# Generate recommendations based on themes
-def generate_recommendations(themes):
-    recommendations = []
-    if "negative" in themes:
-        recommendations.append("Address key topics generating negative sentiment to improve public perception.")
-    if "positive" in themes:
-        recommendations.append("Continue engagement on positive themes to maintain favorable sentiment.")
-    return recommendations
+# Define tasks for each agent with CrewAI
+def create_tasks(brand_name, agents):
+    research_task = Task(
+        description=f"Research {brand_name} and provide a summary of their online presence, key information, and recent activities.",
+        agent=agents[0],
+        expected_output="A structured summary containing: \n1. Brief overview of {brand_name}\n2. Key online platforms and follower counts\n3. Recent notable activities or campaigns\n4. Main products or services\n5. Any recent news or controversies"
+    )
+
+    monitoring_task = Task(
+        description=f"Monitor social media platforms for mentions of '{brand_name}' in the last 24 hours. Provide a summary of the mentions.",
+        agent=agents[1],
+        expected_output="A structured report containing: \n1. Total number of mentions\n2. Breakdown by platform (e.g., Twitter, Instagram, Facebook)\n3. Top 5 most engaging posts or mentions\n4. Any trending hashtags associated with {brand_name}\n5. Notable influencers or accounts mentioning {brand_name}"
+    )
+
+    sentiment_analysis_task = Task(
+        description=f"Analyze the sentiment of the social media mentions about {brand_name}. Categorize them as positive, negative, or neutral.",
+        agent=agents[2],
+        expected_output="A sentiment analysis report containing: \n1. Overall sentiment distribution (% positive, negative, neutral)\n2. Key positive themes or comments\n3. Key negative themes or comments\n4. Any notable changes in sentiment compared to previous periods\n5. Suggestions for sentiment improvement if necessary"
+    )
+
+    report_generation_task = Task(
+        description=f"Generate a comprehensive report about {brand_name} based on the research, social media mentions, and sentiment analysis. Include key insights and recommendations.",
+        agent=agents[3],
+        expected_output="A comprehensive report structured as follows: \n1. Executive Summary\n2. Brand Overview\n3. Social Media Presence Analysis\n4. Sentiment Analysis\n5. Key Insights\n6. Recommendations for Improvement\n7. Conclusion"
+    )
+
+    return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
 # Run social media monitoring and sentiment analysis workflow
-def run_social_media_monitoring(brand_name):
-    mentions = fetch_mentions(brand_name)
-    sentiment_results = analyze_sentiment_by_platform(mentions)
-    themes = extract_key_themes(mentions)
-    recommendations = generate_recommendations(themes)
-    return mentions, sentiment_results, themes, recommendations
+def run_social_media_monitoring(brand_name, max_retries=3):
+    llm = create_llm()
+    agents = create_agents(brand_name, llm)
+    tasks = create_tasks(brand_name, agents)
+    
+    crew = Crew(
+        agents=agents,
+        tasks=tasks,
+        verbose=True
+    )
+
+    for attempt in range(max_retries):
+        try:
+            result = crew.kickoff()
+            return result
+        except Exception as e:
+            st.error(f"Attempt {attempt + 1} failed: {str(e)}")
+            if attempt < max_retries - 1:
+                st.write("Retrying...")
+                time.sleep(5)
+            else:
+                st.error("Max retries reached. Unable to complete the task.")
+                return None
 
 # Display formatted report based on task outputs
-def display_formatted_report(brand_name, mentions, sentiment_results, themes, recommendations):
+def display_formatted_report(brand_name, result):
     st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
-    # Section 1: Social Media Mentions
-    display_mentions(mentions)
+    # Extract task outputs
+    task_outputs = result.tasks_output
 
-    # Section 2: Sentiment Analysis
+    # Section 1: Research Findings
+    st.subheader("1. Research Findings")
+    research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
+    st.write(research_output)
+
+    # Section 2: Social Media Mentions
+    st.subheader("2. Social Media Mentions")
+    mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
+    st.write(mentions_output)
+
+    # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    display_sentiment_charts(sentiment_results)
+    sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
+    st.write(sentiment_output)
 
-    # Section 3: Key Themes and Recommendations
+    # Section 4: Key Themes and Recommendations
     st.subheader("4. Key Themes and Recommendations")
+    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
+    
+    # Try to parse JSON data from the report generator output
+    try:
+        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+        themes = report_data.get('notable_themes', {})
+        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
 
-    st.write("**Notable Themes:**")
-    for theme, info in themes.items():
-        st.write(f"- **{theme}**: {info['description']}")
+        # Display themes
+        st.write("**Notable Themes:**")
+        for theme_key, theme_info in themes.items():
+            st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
 
-    st.write("**Recommendations:**")
-    for rec in recommendations:
-        st.write(f"- {rec}")
+        # Display recommendations
+        st.write("**Recommendations:**")
+        for rec in recommendations:
+            st.write(f"- {rec['recommendation']}")
+
+    except (json.JSONDecodeError, KeyError) as e:
+        st.write("Error parsing the JSON-formatted report.")
+        st.write(report_output)
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
@@ -163,7 +211,11 @@ brand_name = st.text_input("Enter the Brand or Topic Name")
 if st.button("Start Analysis"):
     if brand_name:
         st.write("Starting social media monitoring and sentiment analysis...")
-        mentions, sentiment_results, themes, recommendations = run_social_media_monitoring(brand_name)
-        display_formatted_report(brand_name, mentions, sentiment_results, themes, recommendations)
+        result = run_social_media_monitoring(brand_name)
+        
+        if result:
+            display_formatted_report(brand_name, result)
+        else:
+            st.error("Failed to generate the report. Please try again.")
     else:
         st.error("Please enter a brand or topic name to proceed.")
