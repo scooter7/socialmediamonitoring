@@ -167,18 +167,15 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    try:
-        parsed_mentions = parse_tool_output(mentions_output)
-        if parsed_mentions:
-            for mention in parsed_mentions:
-                st.write(f"**Title:** {mention['title']}")
-                st.write(f"**Link:** [Read more]({mention['link']})")
-                st.write(f"**Snippet:** {mention['snippet']}")
-                st.write("---")
-        else:
-            st.write("No online mentions available.")
-    except Exception as e:
-        st.error(f"Error displaying mentions: {e}")
+    parsed_mentions = parse_tool_output(mentions_output)
+    if parsed_mentions:
+        for mention in parsed_mentions:
+            st.write(f"**Title:** {mention['title']}")
+            st.write(f"**Link:** [Read more]({mention['link']})")
+            st.write(f"**Snippet:** {mention['snippet']}")
+            st.write("---")
+    else:
+        st.write("No online mentions available.")
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
@@ -190,31 +187,32 @@ def display_formatted_report(brand_name, result):
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
     
     try:
-        # Extract JSON data for themes and recommendations
-        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
-        st.write("Raw JSON report data:", report_data)  # Debug: Show raw JSON report data
+        # Parse JSON-formatted report
+        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))["report"]
         
-        themes = report_data.get('notable_themes', {})
-        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
+        # Display structured information
+        st.write("**Sentiment Distribution**")
+        st.write(f"- Positive Mentions: {report_data['sentiment_distribution']['positive_mentions']}%")
+        st.write(f"- Neutral Mentions: {report_data['sentiment_distribution']['neutral_mentions']}%")
+        st.write(f"- Negative Mentions: {report_data['sentiment_distribution']['negative_mentions']}%")
 
-        # Display extracted themes
-        if themes:
-            st.write("**Notable Themes:**")
-            for theme_key, theme_info in themes.items():
-                st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
-        else:
-            st.write("No notable themes available.")
+        st.write("**Key Insights**")
+        for theme, details in report_data["key_insights"].items():
+            st.write(f"- **{theme.replace('_', ' ').title()}**: {details['description']}")
+            if "positive_comments" in details:
+                st.write("  - Positive Comments: " + ", ".join(details["positive_comments"]))
+            if "negative_comments" in details:
+                st.write("  - Negative Comments: " + ", ".join(details["negative_comments"]))
+            if "examples" in details:
+                st.write("  - Examples: " + ", ".join(details["examples"]))
+            if "hashtags" in details:
+                st.write("  - Hashtags: " + ", ".join(details["hashtags"]))
 
-        # Display extracted recommendations
-        if recommendations:
-            st.write("**Recommendations:**")
-            for rec in recommendations:
-                st.write(f"- {rec['recommendation']}")
-        else:
-            st.write("No recommendations available.")
-    except (json.JSONDecodeError, KeyError, AttributeError) as e:
+        st.write("**Recommendations**")
+        for rec in report_data["recommendations"]:
+            st.write(f"- **{rec['focus_area']}**: {rec['action']}")
+    except (json.JSONDecodeError, KeyError, AttributeError):
         st.write("Error parsing the JSON-formatted report.")
-        st.write(report_output)
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
