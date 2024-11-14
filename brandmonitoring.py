@@ -23,9 +23,9 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 # Initialize social media search tool
 search_tool = SerperDevTool()
 
-# Function to create LLM
+# Function to create LLM using GPT-4o-mini
 def create_llm():
-    return ChatOpenAI(model="gpt-4")
+    return ChatOpenAI(model="gpt-4o-mini")
 
 # Enhanced function to fetch social media mentions and news with error handling
 def fetch_mentions(brand_name):
@@ -34,6 +34,7 @@ def fetch_mentions(brand_name):
     for source in sources:
         try:
             result = search_tool.search(brand_name)
+            st.write(f"Fetching mentions from {source}: {result}")  # Debug: Show fetched mentions
             mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
@@ -44,9 +45,10 @@ def fetch_mentions(brand_name):
 def parse_tool_output(tool_output):
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
+    st.write(f"Parsed mentions: {parsed_results}")  # Debug: Show parsed mentions
     return parsed_results
 
-# Create agents with crewai for research and analysis
+# Create agents with CrewAI for research and analysis
 def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
@@ -183,53 +185,30 @@ def display_formatted_report(brand_name, result):
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
     
-    # Generate themes and recommendations if report data is empty
-    if not report_output.strip():
-        # Placeholder theme generation based on available data
-        themes = [
-            {"theme": "Community Engagement", "description": "DMACC actively engages with the community through events and partnerships."},
-            {"theme": "Academic Excellence", "description": "DMACC is recognized for its affordable tuition and extensive academic programs."},
-        ]
-        
-        recommendations = [
-            {"recommendation": "Increase engagement on social media by sharing student success stories and upcoming events."},
-            {"recommendation": "Explore additional partnerships to further expand program offerings and career pathways."}
-        ]
+    # Display JSON data if available
+    try:
+        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+        themes = report_data.get('notable_themes', {})
+        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
 
         # Display themes
-        st.write("**Notable Themes:**")
-        for theme in themes:
-            st.write(f"- **{theme['theme']}**: {theme['description']}")
+        if themes:
+            st.write("**Notable Themes:**")
+            for theme_key, theme_info in themes.items():
+                st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
+        else:
+            st.write("No notable themes available.")
 
         # Display recommendations
-        st.write("**Recommendations:**")
-        for rec in recommendations:
-            st.write(f"- {rec['recommendation']}")
-    else:
-        # Try to parse JSON data if available
-        try:
-            report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
-            themes = report_data.get('notable_themes', {})
-            recommendations = report_data.get('conclusion', {}).get('recommendations', [])
-
-            # Display themes
-            if themes:
-                st.write("**Notable Themes:**")
-                for theme_key, theme_info in themes.items():
-                    st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
-            else:
-                st.write("No notable themes available.")
-
-            # Display recommendations
-            if recommendations:
-                st.write("**Recommendations:**")
-                for rec in recommendations:
-                    st.write(f"- {rec['recommendation']}")
-            else:
-                st.write("No recommendations available.")
-        except (json.JSONDecodeError, KeyError) as e:
-            st.write("Error parsing the JSON-formatted report.")
-            st.write(report_output)
+        if recommendations:
+            st.write("**Recommendations:**")
+            for rec in recommendations:
+                st.write(f"- {rec['recommendation']}")
+        else:
+            st.write("No recommendations available.")
+    except (json.JSONDecodeError, KeyError) as e:
+        st.write("Error parsing the JSON-formatted report.")
+        st.write(report_output)
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
