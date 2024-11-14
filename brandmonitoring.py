@@ -127,57 +127,66 @@ def display_mentions(mentions_data):
     else:
         st.write("No online mentions or sentiment data available.")
 
-# Function to parse and display the report content
+# Function to parse and display the report content, including all three sections
 def parse_and_display_report(report_output):
     try:
+        report = report_output.get("report", {})
+
+        # Section 2: Sentiment Distribution
         st.subheader("2. Online Mentions and Sentiment Analysis")
-        
-        if "report" in report_output:
-            report = report_output["report"]
+        sentiment_data = report.get("sentiment_distribution", {})
+        if sentiment_data:
+            st.write("### Sentiment Distribution")
+            for sentiment, details in sentiment_data.items():
+                percentage = details.get("percentage", "N/A")
+                description = details.get("description", "No description available")
+                st.write(f"**{sentiment.capitalize()} Mentions ({percentage}%):** {description}")
+            st.write("---")
 
-            # Display Sentiment Distribution if available
-            sentiment_data = report.get("sentiment_distribution", {})
-            if sentiment_data:
-                st.write("### Sentiment Distribution")
-                for sentiment, details in sentiment_data.items():
-                    percentage = details.get("percentage", "N/A")
-                    description = details.get("description", "No description available")
-                    st.write(f"**{sentiment.capitalize()} Mentions ({percentage}%):** {description}")
-                st.write("---")
-
-            # Display Notable Themes if available
-            notable_themes = report.get("notable_themes", [])
-            if notable_themes:
-                st.write("### Notable Themes")
-                for theme in notable_themes:
-                    st.write(f"**{theme['theme']}:** {theme['description']}")
-                st.write("---")
-                
-            # Display Recommendations if available
-            recommendations = report.get("recommendations", [])
-            if recommendations:
-                st.subheader("3. Recommendations")
-                for recommendation in recommendations:
-                    st.write(f"**{recommendation['action']}:** {recommendation['description']}")
-                st.write("---")
-
+        # Section 2: Notable Themes
+        notable_themes = report.get("notable_themes", [])
+        if notable_themes:
+            st.write("### Notable Themes")
+            for theme in notable_themes:
+                st.write(f"**{theme['theme']}:** {theme['description']}")
+            st.write("---")
         else:
-            st.write("No structured report data available.")
-
+            st.write("No notable themes available.")
+            
     except Exception as e:
         st.error(f"Error displaying report: {e}")
 
-# Main display function
+# Function to display the recommendations in Section 3
+def display_recommendations(report_output):
+    try:
+        st.subheader("3. Recommendations")
+        recommendations = report_output.get("report", {}).get("recommendations", [])
+        if recommendations:
+            for recommendation in recommendations:
+                action = recommendation.get("action", "No action available")
+                description = recommendation.get("description", "No description available")
+                st.write(f"**{action}:** {description}")
+            st.write("---")
+        else:
+            st.write("No recommendations available.")
+    except Exception as e:
+        st.error(f"Error displaying recommendations: {e}")
+
+# Main display function, including all three sections
 def display_formatted_report(brand_name, report_output):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
+    # Section 1: Research Findings
     st.subheader("1. Research Findings")
     st.write("Summary of recent activities, online presence, etc.")
 
-    # 2. Online Mentions and Sentiment Analysis
+    # Section 2: Online Mentions and Sentiment Analysis
     parse_and_display_report(report_output)
 
+    # Section 3: Recommendations
+    display_recommendations(report_output)
+    
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
 brand_name = st.text_input("Enter the Brand or Topic Name")
