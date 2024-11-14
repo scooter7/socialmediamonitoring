@@ -165,7 +165,7 @@ def display_formatted_report(brand_name, result):
     # Display raw mentions as they appear in the logs
     if mentions_output:
         st.write("## Tool Output:")
-    s    t.write(mentions_output)
+        st.write(mentions_output)
     else:
         st.write("No online mentions available.")
 
