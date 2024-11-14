@@ -126,23 +126,38 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Function to parse JSON data for Online Mentions and Sentiment Analysis
-def parse_json_output(report_output):
+# Function to parse and display data in a readable format
+def parse_and_display_raw_data(report_output):
     try:
+        # Parse the JSON data
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         sentiment_data = report_data.get('report', {}).get('sentiment_analysis', {})
         
-        positive = sentiment_data.get("positive_sentiment", {})
-        negative = sentiment_data.get("negative_sentiment", {})
-        neutral = sentiment_data.get("neutral_sentiment", {})
-
+        # Display sentiment details
+        st.write("### Positive Sentiment")
+        st.write(f"**Percentage:** {sentiment_data.get('positive_sentiment', {}).get('percentage', 'N/A')}%")
+        st.write(f"**Examples:** {', '.join(sentiment_data.get('positive_sentiment', {}).get('examples', []))}")
+        st.write(f"**Themes:** {', '.join(sentiment_data.get('positive_sentiment', {}).get('themes', []))}")
+        
+        st.write("### Negative Sentiment")
+        st.write(f"**Percentage:** {sentiment_data.get('negative_sentiment', {}).get('percentage', 'N/A')}%")
+        st.write(f"**Examples:** {', '.join(sentiment_data.get('negative_sentiment', {}).get('examples', []))}")
+        st.write(f"**Themes:** {', '.join(sentiment_data.get('negative_sentiment', {}).get('themes', []))}")
+        
+        st.write("### Neutral Sentiment")
+        st.write(f"**Percentage:** {sentiment_data.get('neutral_sentiment', {}).get('percentage', 'N/A')}%")
+        st.write(f"**Examples:** {', '.join(sentiment_data.get('neutral_sentiment', {}).get('examples', []))}")
+        st.write(f"**Themes:** {', '.join(sentiment_data.get('neutral_sentiment', {}).get('themes', []))}")
+        
+        # Display notable themes
         notable_themes = report_data.get('report', {}).get('notable_themes', [])
-        recommendations = report_data.get('report', {}).get('recommendations', [])
+        if notable_themes:
+            st.write("### Notable Themes")
+            for theme in notable_themes:
+                st.write(f"- **{theme.get('theme', 'No Theme')}**: {theme.get('description', 'No description')}")
 
-        return positive, negative, neutral, notable_themes, recommendations
     except json.JSONDecodeError:
         st.error("Error parsing JSON data. Please check the JSON format.")
-        return None, None, None, None, None
 
 # Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
@@ -160,34 +175,15 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions and Sentiment Analysis
     st.subheader("2. Online Mentions and Sentiment Analysis")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
-
-    positive, negative, neutral, notable_themes, recommendations = parse_json_output(report_output)
-
-    if positive:
-        st.write("### Positive Sentiment")
-        st.write(f"- **Percentage**: {positive.get('percentage', 'N/A')}%")
-        st.write(f"- **Examples**: {', '.join(positive.get('examples', []))}")
-        st.write(f"- **Themes**: {', '.join(positive.get('themes', []))}")
-
-    if negative:
-        st.write("### Negative Sentiment")
-        st.write(f"- **Percentage**: {negative.get('percentage', 'N/A')}%")
-        st.write(f"- **Examples**: {', '.join(negative.get('examples', []))}")
-        st.write(f"- **Themes**: {', '.join(negative.get('themes', []))}")
-
-    if neutral:
-        st.write("### Neutral Sentiment")
-        st.write(f"- **Percentage**: {neutral.get('percentage', 'N/A')}%")
-        st.write(f"- **Examples**: {', '.join(neutral.get('examples', []))}")
-        st.write(f"- **Themes**: {', '.join(neutral.get('themes', []))}")
-
-    if notable_themes:
-        st.write("### Notable Themes")
-        for theme in notable_themes:
-            st.write(f"- **{theme.get('theme', 'No Theme')}**: {theme.get('description', 'No description')}")
+    if report_output:
+        parse_and_display_raw_data(report_output)
+    else:
+        st.write("No online mentions or sentiment data available.")
 
     # Section 3: Recommendations
     st.subheader("3. Recommendations")
+    report_data = json.loads(report_output.strip('```json\n').strip('\n```')) if report_output else {}
+    recommendations = report_data.get('report', {}).get('recommendations', [])
     if recommendations:
         for recommendation in recommendations:
             st.write(f"- {recommendation}")
