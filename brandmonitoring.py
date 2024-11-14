@@ -60,7 +60,7 @@ def create_agents(brand_name, llm):
     )
     report_generator = Agent(
         role="Report Generator",
-        goal=f"Generate a JSON-formatted report based on analysis of {brand_name}",
+        goal=f"Generate a formatted report based on analysis of {brand_name}",
         backstory="Data analyst and report writer adept at presenting insights clearly.",
         verbose=True,
         allow_delegation=False,
@@ -69,7 +69,7 @@ def create_agents(brand_name, llm):
     )
     return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
 
-# Define tasks with CrewAI and handle JSON formatting within the last task
+# Define tasks with CrewAI without `output_json`, capturing results manually instead
 def create_tasks(brand_name, agents):
     research_task = Task(
         description=f"Research {brand_name} and provide a structured summary.",
@@ -87,9 +87,9 @@ def create_tasks(brand_name, agents):
         expected_output="Sentiment breakdown and themes."
     )
     report_generation_task = Task(
-        description=f"Generate a JSON report for {brand_name} based on the findings.",
+        description=f"Generate a comprehensive report for {brand_name} based on the findings.",
         agent=agents[3],
-        expected_output="JSON formatted report of insights and recommendations."
+        expected_output="Formatted report with insights and recommendations."
     )
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
@@ -107,8 +107,15 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 
     for attempt in range(max_retries):
         try:
-            result = crew.kickoff().json()  # Capture output in JSON
-            return result
+            # Run each task individually to manually format the JSON output
+            result = crew.kickoff()
+            output = {
+                "Research Findings": result.tasks[0].output,
+                "Social Media Mentions": result.tasks[1].output,
+                "Sentiment Analysis": result.tasks[2].output,
+                "Recommendations": result.tasks[3].output
+            }
+            return output
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
