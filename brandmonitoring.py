@@ -179,27 +179,28 @@ def display_formatted_report(brand_name, task_outputs):
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs and len(task_outputs) > 3 else "No report data available"
 
-    # Debug: Display raw output for troubleshooting
+    # Display raw output for debugging
     st.write("**Raw Report Output**", report_output)
 
     try:
-        # Thorough cleaning to remove backticks, markdown artifacts, and any extraneous whitespace
+        # Step 1: Clean the JSON string by removing unwanted characters
         report_output_cleaned = re.sub(r'```json|```|\n', '', report_output).strip()
-
-        # Attempt to parse the cleaned string as JSON
+        
+        # Step 2: Check if cleaned data is valid JSON and attempt parsing
         try:
             report_data = json.loads(report_output_cleaned)
-        except json.JSONDecodeError:
-            st.error("Error: Unable to parse JSON. Please ensure the output is valid JSON format.")
+            st.write("Successfully parsed JSON.")
+        except json.JSONDecodeError as e:
+            st.error("Error: JSON parsing failed. Please check the structure. Details: " + str(e))
             return
 
         # Display structured information if JSON parsed successfully
         st.write("**Sentiment Distribution**")
         sentiment_distribution = report_data.get("sentiment_analysis", {}).get("sentiment_distribution", {})
         if sentiment_distribution:
-            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', 'Data unavailable')}%")
-            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', 'Data unavailable')}%")
-            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', 'Data unavailable')}%")
+            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive_mentions', 'Data unavailable')}%")
+            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative_mentions', 'Data unavailable')}%")
+            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral_mentions', 'Data unavailable')}%")
 
         st.write("**Notable Themes**")
         notable_themes = report_data.get("notable_themes", [])
@@ -216,12 +217,12 @@ def display_formatted_report(brand_name, task_outputs):
         recommendations = report_data.get("recommendations", [])
         if recommendations:
             for recommendation in recommendations:
-                st.write(f"- {recommendation}")
+                st.write(f"- {recommendation.get('action', 'No action specified')}: {recommendation.get('description', 'No description available')}")
         else:
             st.write("No recommendations available.")
 
-    except (json.JSONDecodeError, KeyError, AttributeError) as e:
-        st.error(f"Error parsing the JSON-formatted report: {e}")
+    except Exception as e:
+        st.error(f"Unexpected error: {e}")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
