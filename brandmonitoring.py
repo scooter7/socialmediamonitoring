@@ -132,7 +132,10 @@ def parse_and_display_mentions(report_output):
         # Load the JSON output from CrewAI, assuming it's within a code block format
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         
-        # Check if 'mentions' data is present
+        # Debug: Display the JSON structure to confirm access
+        st.write("Debug: Parsed JSON structure:", report_data)  # This will show the JSON data structure
+        
+        # Attempt to locate 'online_mentions' within 'report'
         mentions_data = report_data.get('report', {}).get('online_mentions', [])
         if mentions_data:
             st.write("### Online Mentions and Sentiment Analysis")
