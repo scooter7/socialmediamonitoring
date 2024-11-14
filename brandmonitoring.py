@@ -129,23 +129,36 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 # Function to parse and display online mentions data in a structured format for Section 2
 def parse_and_display_mentions(report_output):
     try:
-        # Load JSON data from CrewAI response, assuming it's within a code block format
+        # Load JSON data from the CrewAI response
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         
-        # Attempt to locate 'online_mentions' or similar search results within the JSON structure
-        search_results = report_data.get('report', {}).get('social_media_mentions', {}).get('search_results', [])
+        # Search for potential mentions in JSON data by navigating through all nested keys
+        st.write("### Online Mentions and Sentiment Analysis")
+        found_data = False
         
-        if search_results:
-            st.write("### Online Mentions and Sentiment Analysis")
-            for result in search_results:
-                title = result.get('title', 'No Title')
-                link = result.get('link', 'No Link')
-                snippet = result.get('snippet', 'No Snippet')
-                st.write(f"**Title:** {title}")
-                st.write(f"**Link:** {link}")
-                st.write(f"**Snippet:** {snippet}")
-                st.write("---")  # Separate each mention for clarity
-        else:
+        # A recursive function to search for `title`, `link`, and `snippet` in any nested structure
+        def search_mentions(data):
+            nonlocal found_data
+            if isinstance(data, dict):
+                # If the dict contains title, link, and snippet, we assume it’s a mention
+                if "title" in data and "link" in data and "snippet" in data:
+                    st.write(f"**Title:** {data['title']}")
+                    st.write(f"**Link:** {data['link']}")
+                    st.write(f"**Snippet:** {data['snippet']}")
+                    st.write("---")
+                    found_data = True
+                # Otherwise, recursively search nested dictionaries
+                for key, value in data.items():
+                    search_mentions(value)
+            elif isinstance(data, list):
+                # If it's a list, check each item
+                for item in data:
+                    search_mentions(item)
+        
+        # Start searching mentions within parsed JSON data
+        search_mentions(report_data)
+        
+        if not found_data:
             st.write("No online mentions or sentiment data available.")
             
     except json.JSONDecodeError:
