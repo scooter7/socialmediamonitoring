@@ -237,18 +237,25 @@ def display_formatted_report(brand_name, result):
     # Try to parse JSON data from the report generator output
     try:
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
-        themes = report_data.get('notable_themes', {})
-        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
-
+        
         # Display themes
+        themes = report_data.get('notable_themes', {})
         st.write("**Notable Themes:**")
-        for theme_key, theme_info in themes.items():
-            st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
+        if themes:
+            for theme_key, theme_info in themes.items():
+                description = theme_info.get('description', 'No description available')
+                st.write(f"- **{theme_key.replace('_', ' ').title()}**: {description}")
+        else:
+            st.write("No notable themes identified.")
 
         # Display recommendations
+        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
         st.write("**Recommendations:**")
-        for rec in recommendations:
-            st.write(f"- {rec['recommendation']}")
+        if recommendations:
+            for rec in recommendations:
+                st.write(f"- {rec.get('recommendation', 'No specific recommendation available')}")
+        else:
+            st.write("No specific recommendations provided.")
 
     except (json.JSONDecodeError, KeyError) as e:
         st.write("Error parsing the JSON-formatted report.")
