@@ -147,15 +147,12 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display formatted report based on task outputs
-# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
     # Extract task outputs
     task_outputs = result.tasks_output
-    # Log the task outputs to check if they contain data
-    st.write("Debug - Task Outputs:", task_outputs)
 
     # Section 1: Research Findings
     st.subheader("1. Research Findings")
