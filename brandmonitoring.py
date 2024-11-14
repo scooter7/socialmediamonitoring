@@ -34,22 +34,16 @@ def fetch_mentions(brand_name):
     for source in sources:
         try:
             result = search_tool.search(brand_name)
-            st.write(f"Raw result from {source}: {result}")  # Debug: Show raw result from search tool
             mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
-            mentions[source] = []  # Store an empty list if an error occurs
+            mentions[source] = []
     return mentions
 
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
-    # Debug: Show raw tool output before parsing
-    st.write("Raw tool output:", tool_output)
-    # Adjust regex to capture mentions if the format has changed
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
-    parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
-    st.write("Parsed mentions:", parsed_results)  # Debug: Show parsed mentions
-    return parsed_results
+    return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
 
 # Create agents with CrewAI for research and analysis
 def create_agents(brand_name, llm):
@@ -140,7 +134,6 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-            st.write("Raw result from CrewAI:", result)  # Debug: Show raw CrewAI result
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -161,17 +154,17 @@ def display_formatted_report(brand_name, result):
 
     # Section 1: Research Findings
     st.subheader("1. Research Findings")
-    research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
+    research_output = task_outputs[0].summary if task_outputs[0] else "No data available"
     st.write(research_output)
 
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
-    mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
+    mentions_output = task_outputs[1].summary if task_outputs[1] else "No mentions data available"
     st.write(mentions_output)
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
+    sentiment_output = task_outputs[2].summary if task_outputs[2] else "No sentiment data available"
     st.write(sentiment_output)
 
     # Section 4: Key Themes and Recommendations
@@ -179,18 +172,11 @@ def display_formatted_report(brand_name, result):
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
 
     try:
-        # Remove the surrounding markdown formatting for JSON (` ```json `)
+        # Remove JSON formatting and parse
         report_output = report_output.strip("```json\n").strip("\n```")
-        
-        # Parse the JSON content
         report_data = json.loads(report_output)["report"]
 
-        # Display title and date
-        st.write(f"**Title**: {report_data.get('title', 'No Title')}")
-        st.write(f"**Date**: {report_data.get('date', 'No Date')}")
-        st.write("---")
-
-        # Display Sentiment Distribution
+        # Display structured report
         st.write("### Sentiment Distribution")
         sentiment_distribution = report_data.get("sentiment_distribution", {})
         for sentiment, details in sentiment_distribution.items():
@@ -206,16 +192,17 @@ def display_formatted_report(brand_name, result):
         for theme in notable_themes:
             st.write(f"- **{theme['theme']}**: {theme['description']}")
 
-        # Display Overall Insights
-        st.write("### Overall Insights")
-        for insight in report_data.get("overall_insights", []):
-            st.write(f"- {insight}")
+        # Display Notable Posts with Title, Link, and Snippet
+        st.write("### Notable Posts")
+        notable_posts = report_data.get("notable_posts", [])
+        for post in notable_posts:
+            st.write(f"- **[{post['title']}]({post['link']})**: {post['snippet']}")
 
         # Display Recommendations
         st.write("### Recommendations")
         recommendations = report_data.get("recommendations", [])
         for rec in recommendations:
-            st.write(f"- **{rec}**")
+            st.write(f"- {rec}")
 
     except (json.JSONDecodeError, KeyError, AttributeError):
         st.error("Error parsing the JSON-formatted report. Please ensure the data format is correct.")
