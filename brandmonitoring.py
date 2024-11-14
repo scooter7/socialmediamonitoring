@@ -186,9 +186,15 @@ def display_formatted_report(brand_name, task_outputs):
         report_data = json.loads(report_output_cleaned)
         st.write("Successfully parsed JSON.")
 
-        # Display parsed JSON data
-        if 'USC_Aiken_Sentiment_Report' in report_data:
-            sentiment_report = report_data["USC_Aiken_Sentiment_Report"]
+        # Check for a key matching the brand name or closest match
+        report_key = None
+        for key in report_data.keys():
+            if brand_name.lower() in key.lower():
+                report_key = key
+                break
+
+        if report_key:
+            sentiment_report = report_data[report_key]
 
             # Sentiment Distribution
             st.write("**Sentiment Distribution**")
@@ -203,7 +209,7 @@ def display_formatted_report(brand_name, task_outputs):
             for sentiment_type, details in key_insights.items():
                 st.write(f"- **{sentiment_type.replace('_', ' ')}**")
                 for theme, content in details.items():
-                    st.write(f"  - {theme.replace('_', ' ')}: {content['Description']}")
+                    st.write(f"  - {theme.replace('_', ' ')}: {content.get('Description', 'No description available')}")
                     st.write(f"    - Feedback: {content.get('Feedback', 'No feedback available')}")
 
             # Notable Themes
@@ -217,7 +223,7 @@ def display_formatted_report(brand_name, task_outputs):
             st.write("**Conclusion**")
             conclusion = sentiment_report.get("Conclusion", {})
             st.write(f"- Summary: {conclusion.get('summary', 'No summary available')}")
-            st.write(f"- Areas for Improvement: {conclusion.get('areas_for_improvement', 'No implications available')}")
+            st.write(f"- Areas for Improvement: {conclusion.get('areas_for_improvement', 'No areas for improvement available')}")
 
             # Recommendations
             st.write("**Recommendations**")
@@ -226,7 +232,7 @@ def display_formatted_report(brand_name, task_outputs):
                 st.write(f"- {recommendation.replace('_', ' ')}: {details.get('Action', 'No action specified')}")
 
         else:
-            st.error("Parsed JSON does not contain expected report data structure.")
+            st.error("Parsed JSON does not contain a report for the specified brand name.")
 
     except json.JSONDecodeError as e:
         st.error(f"Error parsing JSON: {e}")
