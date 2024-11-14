@@ -60,8 +60,8 @@ def create_agents(brand_name, llm):
     )
     report_generator = Agent(
         role="Report Generator",
-        goal=f"Generate comprehensive JSON-formatted reports based on the analysis of {brand_name}",
-        backstory="Data analyst and report writer, adept at presenting insights clearly.",
+        goal=f"Generate a JSON-formatted report based on analysis of {brand_name}",
+        backstory="Data analyst and report writer adept at presenting insights clearly.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
@@ -69,28 +69,27 @@ def create_agents(brand_name, llm):
     )
     return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
 
-# Define tasks with CrewAI and ensure JSON output for the final task
+# Define tasks with CrewAI and handle JSON formatting within the last task
 def create_tasks(brand_name, agents):
     research_task = Task(
-        description=f"Research {brand_name} and provide a summary of their online presence.",
+        description=f"Research {brand_name} and provide a structured summary.",
         agent=agents[0],
-        expected_output="Structured summary with key insights on recent activities."
+        expected_output="Summary with key insights on activities and presence."
     )
     monitoring_task = Task(
-        description=f"Monitor social media for mentions of '{brand_name}' and summarize findings.",
+        description=f"Monitor social media for mentions of '{brand_name}'.",
         agent=agents[1],
-        expected_output="Summary of mentions including counts, platforms, notable mentions."
+        expected_output="Summary of mentions by platform."
     )
     sentiment_analysis_task = Task(
-        description=f"Analyze the sentiment of the social media mentions about {brand_name}.",
+        description=f"Analyze sentiment of social media mentions about {brand_name}.",
         agent=agents[2],
-        expected_output="Sentiment breakdown and notable themes."
+        expected_output="Sentiment breakdown and themes."
     )
     report_generation_task = Task(
-        description=f"Generate a JSON-formatted report about {brand_name} based on the research and sentiment analysis.",
+        description=f"Generate a JSON report for {brand_name} based on the findings.",
         agent=agents[3],
-        expected_output="Detailed report in JSON format including insights and recommendations.",
-        output_json=True  # Explicitly request JSON output in the final task
+        expected_output="JSON formatted report of insights and recommendations."
     )
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
@@ -108,7 +107,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 
     for attempt in range(max_retries):
         try:
-            result = crew.kickoff().json()  # Ensure JSON output is captured
+            result = crew.kickoff().json()  # Capture output in JSON
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
