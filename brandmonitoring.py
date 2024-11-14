@@ -116,7 +116,9 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-            return result
+            if hasattr(result, 'json_dict'):
+                return result.json_dict  # Return as dictionary if possible
+            return json.loads(result.raw)  # Attempt to parse JSON if it's a string
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
@@ -146,18 +148,14 @@ def display_mentions(mentions_data):
 # Function to parse and display the report content
 def parse_and_display_report(report_output):
     try:
-        # Parse the JSON data
-        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+        # Ensure report_output is a dictionary
+        report_data = report_output if isinstance(report_output, dict) else json.loads(report_output)
 
         # Display Online Mentions and Sentiment Analysis
         st.subheader("2. Online Mentions and Sentiment Analysis")
         
         # Look for specific structure in tool outputs for title, link, snippet
-        mentions_data = []
-        for tool_output in report_data.get("tool_outputs", []):
-            # Collect mentions if the output contains title, link, and snippet
-            if all(key in tool_output for key in ["title", "link", "snippet"]):
-                mentions_data.append(tool_output)
+        mentions_data = report_data.get("tool_outputs", [])
         
         # Display collected mentions
         display_mentions(mentions_data)
