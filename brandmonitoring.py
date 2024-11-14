@@ -178,6 +178,9 @@ def display_formatted_report(brand_name, task_outputs):
     # Section 4: Key Themes and Recommendations
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs and len(task_outputs) > 3 else "No report data available"
+    
+    # Debug: Show raw report output to diagnose JSON parsing
+    st.write("**Raw Report Output**", report_output)
 
     try:
         # Clean JSON output and parse it
