@@ -34,79 +34,18 @@ def fetch_mentions(brand_name):
     for source in sources:
         try:
             # Attempt to fetch mentions for each platform
-            result = search_tool.run(brand_name)
-            mentions[source] = result or []  # Assign an empty list if result is None or empty
+            result = search_tool.search(brand_name)
+            mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
             mentions[source] = []  # Store an empty list if an error occurs
     return mentions
 
-# Analyze sentiment by platform with improved handling for missing data
-def analyze_sentiment_by_platform(mentions):
-    sentiment_results = {}
-    for platform, posts in mentions.items():
-        platform_sentiments = {"positive": 0, "negative": 0, "neutral": 0}
-        if not posts:  # If no posts were retrieved for the platform
-            sentiment_results[platform] = platform_sentiments
-            continue
-        for post in posts:
-            # Example placeholder: replace with actual sentiment analysis
-            sentiment = "neutral"  # Assuming a dummy sentiment
-            platform_sentiments[sentiment] += 1
-        sentiment_results[platform] = platform_sentiments
-    return sentiment_results
-
-# Display sentiment charts per platform with NaN handling
-def display_sentiment_charts(sentiment_results):
-    for platform, sentiments in sentiment_results.items():
-        st.subheader(f"Sentiment Distribution on {platform}")
-        
-        # Handle NaN by converting values to 0 if NaN
-        positive = sentiments.get("positive", 0) or 0
-        negative = sentiments.get("negative", 0) or 0
-        neutral = sentiments.get("neutral", 0) or 0
-
-        # Check for total mentions to prevent division by zero
-        total_mentions = positive + negative + neutral
-        if total_mentions == 0:
-            st.write(f"No sentiment data available for {platform}.")
-            continue
-
-        # Prepare sizes and labels for pie chart
-        labels = ['Positive', 'Negative', 'Neutral']
-        sizes = [positive, negative, neutral]
-
-        # Create pie chart
-        fig, ax = plt.subplots()
-        ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
-        ax.axis('equal')  # Equal aspect ratio ensures the pie chart is circular.
-        st.pyplot(fig)
-
-# JSON parsing with error handling
-def parse_report_output(report_output):
-    try:
-        json_str = report_output.strip('```json\n').strip('\n```')
-        report_data = json.loads(json_str)
-        return report_data
-    except json.JSONDecodeError as e:
-        st.write("Error parsing JSON report.")
-        st.write(str(e))
-        return None
-
-# Display Key Themes and Recommendations
-def display_key_themes_and_recommendations(report_data):
-    themes = report_data.get('notable_themes', {})
-    recommendations = report_data.get('conclusion', {}).get('recommendations', [])
-    
-    # Display Key Themes
-    st.subheader("Key Themes")
-    for theme, details in themes.items():
-        st.write(f"- **{theme.replace('_', ' ').title()}**: {details.get('description', 'No description provided')}")
-
-    # Display Recommendations
-    st.subheader("Recommendations")
-    for rec in recommendations:
-        st.write(f"- {rec['recommendation']}")
+# Parse tool output to extract structured data
+def parse_tool_output(tool_output):
+    entries = re.findall(r"Title: (.+?)\n\nLink: (.+?)\n\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
+    parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
+    return parsed_results
 
 # Create agents with crewai for research and analysis
 def create_agents(brand_name, llm):
@@ -154,7 +93,7 @@ def create_agents(brand_name, llm):
 
     return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
 
-# Define tasks with crewai
+# Define tasks for each agent with CrewAI
 def create_tasks(brand_name, agents):
     research_task = Task(
         description=f"Research {brand_name} and provide a summary of their online presence, key information, and recent activities.",
