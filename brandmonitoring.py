@@ -162,9 +162,17 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
+    
     if mentions_output:
-        st.write("## Tool Output:")
-        st.write(mentions_output)  # Display raw tool output verbatim
+        # Display verbatim mentions
+        st.write("## Verbatim Mentions:")
+        st.write(mentions_output)
+
+        # Extract and display summary separately if included
+        summary_match = re.search(r"Summary of Mentions[\s\S]+?(?=\n\n|\Z)", mentions_output)
+        if summary_match:
+            st.write("## Summary of Mentions:")
+            st.write(summary_match.group(0))
     else:
         st.write("No online mentions available.")
 
