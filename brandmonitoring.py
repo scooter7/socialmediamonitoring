@@ -12,6 +12,7 @@ from langchain_openai import ChatOpenAI
 import openai
 import matplotlib.pyplot as plt
 import pandas as pd
+import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -32,7 +33,7 @@ def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
         goal=f"Research and gather information about {brand_name} from various sources",
-        backstory="You are an expert researcher with a knack for finding relevant information quickly.",
+        backstory="Expert researcher with a knack for finding relevant information quickly.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -42,7 +43,7 @@ def create_agents(brand_name, llm):
     social_media_monitor = Agent(
         role="Social Media Monitor",
         goal=f"Monitor social media platforms for mentions of {brand_name}",
-        backstory="Experienced social media analyst with keen eyes for trends and mentions.",
+        backstory="Experienced social media analyst.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -51,8 +52,8 @@ def create_agents(brand_name, llm):
     )
     sentiment_analyzer = Agent(
         role="Sentiment Analyzer",
-        goal=f"Analyze the sentiment of social media mentions about {brand_name}",
-        backstory="Expert in natural language processing and sentiment analysis.",
+        goal=f"Analyze sentiment of social media mentions about {brand_name}",
+        backstory="Expert in NLP and sentiment analysis.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
@@ -60,8 +61,8 @@ def create_agents(brand_name, llm):
     )
     report_generator = Agent(
         role="Report Generator",
-        goal=f"Generate a formatted report based on analysis of {brand_name}",
-        backstory="Data analyst and report writer adept at presenting insights clearly.",
+        goal=f"Generate a report based on analysis of {brand_name}",
+        backstory="Skilled data analyst and report writer.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
@@ -72,12 +73,12 @@ def create_agents(brand_name, llm):
 # Define tasks with CrewAI
 def create_tasks(brand_name, agents):
     research_task = Task(
-        description=f"Research {brand_name} and provide a structured summary.",
+        description=f"Research {brand_name} and summarize online presence and activities.",
         agent=agents[0],
-        expected_output="Summary with key insights on activities and presence."
+        expected_output="A summary of recent activities and presence."
     )
     monitoring_task = Task(
-        description=f"Monitor social media for mentions of '{brand_name}'.",
+        description=f"Monitor social media platforms for mentions of '{brand_name}'.",
         agent=agents[1],
         expected_output="Summary of mentions by platform."
     )
@@ -87,9 +88,9 @@ def create_tasks(brand_name, agents):
         expected_output="Sentiment breakdown and themes."
     )
     report_generation_task = Task(
-        description=f"Generate a comprehensive report for {brand_name} based on the findings.",
+        description=f"Generate a JSON-formatted report for {brand_name} based on findings.",
         agent=agents[3],
-        expected_output="Formatted report with insights and recommendations."
+        expected_output="JSON formatted report with insights and recommendations."
     )
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
@@ -111,11 +112,17 @@ def run_social_media_monitoring(brand_name, max_retries=3):
             result = crew.kickoff()
             output = {}
 
-            # Extract outputs based on task names or indices if available in CrewOutput
+            # Extract outputs from tasks_output or similar property
             if hasattr(result, "tasks_output"):
-                output = {task.description: task.output for task in result.tasks_output}
+                for task_output in result.tasks_output:
+                    if hasattr(task_output, "description"):
+                        output[task_output.description] = {
+                            "summary": getattr(task_output, "summary", "N/A"),
+                            "raw_output": getattr(task_output, "raw", "N/A"),
+                            "json_output": task_output.json_dict if hasattr(task_output, "json_dict") else None
+                        }
             elif hasattr(result, "json_dict"):
-                output = result.json_dict  # Direct access to JSON dictionary if available
+                output = result.json_dict
             
             return output
         except Exception as e:
