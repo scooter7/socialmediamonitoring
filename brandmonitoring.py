@@ -189,27 +189,41 @@ def display_formatted_report(brand_name, task_outputs):
 
         # Display structured information if available
         st.write("**Sentiment Distribution**")
-        sentiment_distribution = report_data.get("Sentiment_Analysis", {})
-        st.write(f"- Positive Mentions: {sentiment_distribution.get('Positive_Mentions', 'N/A')}%")
-        st.write(f"- Neutral Mentions: {sentiment_distribution.get('Neutral_Mentions', 'N/A')}%")
-        st.write(f"- Negative Mentions: {sentiment_distribution.get('Negative_Mentions', 'N/A')}%")
+        sentiment_distribution = report_data.get("sentiment_analysis", {}).get("distribution", {})
+        if sentiment_distribution:
+            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', 'Data unavailable')}%")
+            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', 'Data unavailable')}%")
+            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', 'Data unavailable')}%")
+        else:
+            st.write("Sentiment distribution data is unavailable.")
 
         st.write("**Key Insights**")
-        key_insights = report_data.get("Key_Insights", {})
-        for theme, details in key_insights.items():
-            st.write(f"- **{theme.replace('_', ' ').title()}**")
-            st.write(f"  - Sentiment: {details.get('Sentiment', 'N/A')}")
-            st.write(f"  - Description: {details.get('Description', 'N/A')}")
-            st.write(f"  - Examples: {', '.join(details.get('Examples', []))}")
+        key_insights = report_data.get("sentiment_analysis", {}).get("findings", {})
+        for mention_type, details in key_insights.items():
+            st.write(f"- **{mention_type.replace('_', ' ').title()}**")
+            st.write(f"  - Description: {details.get('description', 'No description available')}")
+            st.write(f"  - Highlights: {', '.join(details.get('highlights', []))}")
+
+        st.write("**Notable Themes**")
+        notable_themes = report_data.get("notable_themes", [])
+        for theme in notable_themes:
+            st.write(f"- **{theme.get('theme', 'Unnamed Theme')}**")
+            st.write(f"  - Description: {theme.get('description', 'No description available')}")
+            if theme.get("hashtags"):
+                st.write(f"  - Hashtags: {', '.join(theme['hashtags'])}")
 
         st.write("**Conclusion**")
-        conclusion = report_data.get("Conclusion", "N/A")
-        st.write(f"- {conclusion}")
+        conclusion = report_data.get("conclusion", {})
+        st.write(f"- Summary: {conclusion.get('summary', 'No summary available')}")
+        st.write(f"- Implications: {conclusion.get('implications', 'No implications available')}")
 
         st.write("**Recommendations**")
-        recommendations = report_data.get("Recommendations", {})
-        for recommendation, text in recommendations.items():
-            st.write(f"- {recommendation.replace('_', ' ')}: {text}")
+        recommendations = report_data.get("recommendations", [])
+        if recommendations:
+            for recommendation in recommendations:
+                st.write(f"- {recommendation}")
+        else:
+            st.write("No recommendations available.")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error(f"Error parsing the JSON-formatted report: {e}")
