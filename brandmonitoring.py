@@ -12,13 +12,6 @@ from langchain_openai import ChatOpenAI
 import openai
 import matplotlib.pyplot as plt
 import json
-import nltk
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from collections import Counter
-from sklearn.feature_extraction.text import CountVectorizer
-import re
-
-nltk.download('vader_lexicon')
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,9 +20,8 @@ load_dotenv()
 os.environ["SERPER_API_KEY"] = st.secrets["SERPER_API_KEY"]
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# Initialize social media search tool and sentiment analyzer
+# Initialize social media search tool
 search_tool = SerperDevTool()
-sentiment_analyzer = SentimentIntensityAnalyzer()
 
 # Function to create LLM
 def create_llm():
@@ -42,8 +34,8 @@ def fetch_mentions(brand_name):
     for source in sources:
         try:
             # Attempt to fetch mentions for each platform
-            result = search_tool.run(brand_name)
-            mentions[source] = parse_tool_output(result) or []  # Parse the output and assign empty if None
+            result = search_tool.search(brand_name)
+            mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
             mentions[source] = []  # Store an empty list if an error occurs
@@ -103,31 +95,7 @@ def display_sentiment_charts(sentiment_results):
         ax.axis('equal')
         st.pyplot(fig)
 
-# Extract key themes from mentions
-def extract_key_themes(mentions):
-    text_data = [entry["snippet"] for platform_entries in mentions.values() for entry in platform_entries]
-    
-    if not text_data:
-        st.warning("No text data available in mentions to extract themes.")
-        return {}
-
-    vectorizer = CountVectorizer(stop_words='english', max_features=10)
-    X = vectorizer.fit_transform(text_data)
-    word_counts = Counter(X.toarray().sum(axis=0))
-    
-    themes = {word: {"description": f"High frequency mention of '{word}'"} for word in vectorizer.get_feature_names_out()}
-    return themes
-
-# Generate recommendations based on themes
-def generate_recommendations(themes):
-    recommendations = []
-    if "negative" in themes:
-        recommendations.append({"recommendation": "Address key topics generating negative sentiment to improve public perception."})
-    if "positive" in themes:
-        recommendations.append({"recommendation": "Continue engagement on positive themes to maintain favorable sentiment."})
-    return recommendations
-
-# Display formatted report
+# Display formatted report based on task outputs
 def display_formatted_report(brand_name, mentions):
     st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -143,25 +111,6 @@ def display_formatted_report(brand_name, mentions):
     st.subheader("3. Sentiment Analysis")
     sentiment_results = analyze_sentiment_by_platform(mentions)
     display_sentiment_charts(sentiment_results)
-
-    # Section 4: Key Themes and Recommendations
-    st.subheader("4. Key Themes and Recommendations")
-    themes = extract_key_themes(mentions)
-    recommendations = generate_recommendations(themes)
-
-    st.write("**Notable Themes:**")
-    if themes:
-        for theme, info in themes.items():
-            st.write(f"- **{theme}**: {info['description']}")
-    else:
-        st.write("No notable themes identified due to insufficient data.")
-
-    st.write("**Recommendations:**")
-    if recommendations:
-        for rec in recommendations:
-            st.write(f"- {rec['recommendation']}")
-    else:
-        st.write("No specific recommendations provided.")
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
