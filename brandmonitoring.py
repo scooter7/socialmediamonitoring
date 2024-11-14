@@ -136,28 +136,30 @@ def parse_and_display_raw_data(report_output):
         # Display sentiment details under each category
         st.write("### Positive Sentiment")
         pos_sentiment = sentiment_data.get('positive_sentiment', {})
-        st.write(f"**Percentage:** {pos_sentiment.get('percentage', 'N/A')}%")
-        st.write(f"**Examples:** {', '.join(pos_sentiment.get('examples', []))}")
-        st.write(f"**Themes:** {', '.join(pos_sentiment.get('themes', []))}")
+        st.write(f"**Percentage:** {pos_sentiment.get('percentage', 'No Data')}%")
+        st.write(f"**Examples:** {', '.join(pos_sentiment.get('examples', ['No examples available']))}")
+        st.write(f"**Themes:** {', '.join(pos_sentiment.get('themes', ['No themes available']))}")
         
         st.write("### Negative Sentiment")
         neg_sentiment = sentiment_data.get('negative_sentiment', {})
-        st.write(f"**Percentage:** {neg_sentiment.get('percentage', 'N/A')}%")
-        st.write(f"**Examples:** {', '.join(neg_sentiment.get('examples', []))}")
-        st.write(f"**Themes:** {', '.join(neg_sentiment.get('themes', []))}")
+        st.write(f"**Percentage:** {neg_sentiment.get('percentage', 'No Data')}%")
+        st.write(f"**Examples:** {', '.join(neg_sentiment.get('examples', ['No examples available']))}")
+        st.write(f"**Themes:** {', '.join(neg_sentiment.get('themes', ['No themes available']))}")
         
         st.write("### Neutral Sentiment")
         neu_sentiment = sentiment_data.get('neutral_sentiment', {})
-        st.write(f"**Percentage:** {neu_sentiment.get('percentage', 'N/A')}%")
-        st.write(f"**Examples:** {', '.join(neu_sentiment.get('examples', []))}")
-        st.write(f"**Themes:** {', '.join(neu_sentiment.get('themes', []))}")
+        st.write(f"**Percentage:** {neu_sentiment.get('percentage', 'No Data')}%")
+        st.write(f"**Examples:** {', '.join(neu_sentiment.get('examples', ['No examples available']))}")
+        st.write(f"**Themes:** {', '.join(neu_sentiment.get('themes', ['No themes available']))}")
         
         # Display notable themes
         notable_themes = report_data.get('report', {}).get('notable_themes', [])
         if notable_themes:
             st.write("### Notable Themes")
             for theme in notable_themes:
-                st.write(f"- **{theme.get('theme', 'No Theme')}**: {theme.get('description', 'No description')}")
+                st.write(f"- **{theme.get('theme', 'No Theme')}**: {theme.get('description', 'No description available')}")
+        else:
+            st.write("No notable themes available.")
 
     except json.JSONDecodeError:
         st.error("Error parsing JSON data. Please check the JSON format.")
