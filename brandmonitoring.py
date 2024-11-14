@@ -147,7 +147,8 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Display formatted report based on task outputs
+from difflib import get_close_matches
+
 def display_formatted_report(brand_name, task_outputs):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -188,51 +189,54 @@ def display_formatted_report(brand_name, task_outputs):
 
         # Check for a key matching the brand name or closest match
         report_key = None
-        for key in report_data.keys():
-            if brand_name.lower() in key.lower():
-                report_key = key
-                break
-
-        if report_key:
-            sentiment_report = report_data[report_key]
-
-            # Sentiment Distribution
-            st.write("**Sentiment Distribution**")
-            distribution = sentiment_report.get("Overview", {}).get("Sentiment_Distribution", {})
-            st.write(f"- Positive Mentions: {distribution.get('Positive_Mentions', 'N/A')}%")
-            st.write(f"- Negative Mentions: {distribution.get('Negative_Mentions', 'N/A')}%")
-            st.write(f"- Neutral Mentions: {distribution.get('Neutral_Mentions', 'N/A')}%")
-
-            # Key Insights
-            st.write("**Key Insights**")
-            key_insights = sentiment_report.get("Key_Insights", {})
-            for sentiment_type, details in key_insights.items():
-                st.write(f"- **{sentiment_type.replace('_', ' ')}**")
-                for theme, content in details.items():
-                    st.write(f"  - {theme.replace('_', ' ')}: {content.get('Description', 'No description available')}")
-                    st.write(f"    - Feedback: {content.get('Feedback', 'No feedback available')}")
-
-            # Notable Themes
-            st.write("**Notable Themes**")
-            notable_themes = sentiment_report.get("notable_themes", [])
-            for theme in notable_themes:
-                st.write(f"- **{theme.get('theme', 'Unnamed Theme')}**")
-                st.write(f"  - Description: {theme.get('description', 'No description available')}")
-
-            # Conclusion
-            st.write("**Conclusion**")
-            conclusion = sentiment_report.get("Conclusion", {})
-            st.write(f"- Summary: {conclusion.get('summary', 'No summary available')}")
-            st.write(f"- Areas for Improvement: {conclusion.get('areas_for_improvement', 'No areas for improvement available')}")
-
-            # Recommendations
-            st.write("**Recommendations**")
-            recommendations = sentiment_report.get("Recommendations", {})
-            for recommendation, details in recommendations.items():
-                st.write(f"- {recommendation.replace('_', ' ')}: {details.get('Action', 'No action specified')}")
-
+        available_keys = list(report_data.keys())
+        
+        # Attempt to find a close match if an exact match is not available
+        close_matches = get_close_matches(brand_name, available_keys, n=1, cutoff=0.5)
+        if close_matches:
+            report_key = close_matches[0]
+            st.write(f"Using closest match found: '{report_key}' for the brand name '{brand_name}'.")
         else:
-            st.error("Parsed JSON does not contain a report for the specified brand name.")
+            st.error(f"No matching report found for '{brand_name}'. Available keys: {available_keys}")
+            return  # Exit if no close match is found
+
+        # Retrieve the report data using the identified key
+        sentiment_report = report_data[report_key]
+
+        # Sentiment Distribution
+        st.write("**Sentiment Distribution**")
+        distribution = sentiment_report.get("Overview", {}).get("Sentiment_Distribution", {})
+        st.write(f"- Positive Mentions: {distribution.get('Positive_Mentions', 'N/A')}%")
+        st.write(f"- Negative Mentions: {distribution.get('Negative_Mentions', 'N/A')}%")
+        st.write(f"- Neutral Mentions: {distribution.get('Neutral_Mentions', 'N/A')}%")
+
+        # Key Insights
+        st.write("**Key Insights**")
+        key_insights = sentiment_report.get("Key_Insights", {})
+        for sentiment_type, details in key_insights.items():
+            st.write(f"- **{sentiment_type.replace('_', ' ')}**")
+            for theme, content in details.items():
+                st.write(f"  - {theme.replace('_', ' ')}: {content.get('Description', 'No description available')}")
+                st.write(f"    - Feedback: {content.get('Feedback', 'No feedback available')}")
+
+        # Notable Themes
+        st.write("**Notable Themes**")
+        notable_themes = sentiment_report.get("notable_themes", [])
+        for theme in notable_themes:
+            st.write(f"- **{theme.get('theme', 'Unnamed Theme')}**")
+            st.write(f"  - Description: {theme.get('description', 'No description available')}")
+
+        # Conclusion
+        st.write("**Conclusion**")
+        conclusion = sentiment_report.get("Conclusion", {})
+        st.write(f"- Summary: {conclusion.get('summary', 'No summary available')}")
+        st.write(f"- Areas for Improvement: {conclusion.get('areas_for_improvement', 'No areas for improvement available')}")
+
+        # Recommendations
+        st.write("**Recommendations**")
+        recommendations = sentiment_report.get("Recommendations", {})
+        for recommendation, details in recommendations.items():
+            st.write(f"- {recommendation.replace('_', ' ')}: {details.get('Action', 'No action specified')}")
 
     except json.JSONDecodeError as e:
         st.error(f"Error parsing JSON: {e}")
