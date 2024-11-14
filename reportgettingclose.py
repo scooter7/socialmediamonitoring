@@ -10,6 +10,7 @@ from crewai import Agent, Task, Crew
 from crewai_tools import SerperDevTool
 from langchain_openai import ChatOpenAI
 import openai
+import matplotlib.pyplot as plt
 import json
 
 # Load environment variables from .env file
@@ -24,13 +25,94 @@ search_tool = SerperDevTool()
 
 # Function to create LLM
 def create_llm():
-    return ChatOpenAI(model="gpt-4o-mini")
+    return ChatOpenAI(model="gpt-4")
+
+# Enhanced function to fetch social media mentions and news with error handling
+def fetch_mentions(brand_name):
+    sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
+    mentions = {}
+    for source in sources:
+        try:
+            # Attempt to fetch mentions for each platform
+            result = search_tool.run(brand_name)
+            mentions[source] = result or []  # Assign an empty list if result is None or empty
+        except Exception as e:
+            st.warning(f"Could not retrieve data from {source}. Error: {e}")
+            mentions[source] = []  # Store an empty list if an error occurs
+    return mentions
+
+# Analyze sentiment by platform with improved handling for missing data
+def analyze_sentiment_by_platform(mentions):
+    sentiment_results = {}
+    for platform, posts in mentions.items():
+        platform_sentiments = {"positive": 0, "negative": 0, "neutral": 0}
+        if not posts:  # If no posts were retrieved for the platform
+            sentiment_results[platform] = platform_sentiments
+            continue
+        for post in posts:
+            # Example placeholder: replace with actual sentiment analysis
+            sentiment = "neutral"  # Assuming a dummy sentiment
+            platform_sentiments[sentiment] += 1
+        sentiment_results[platform] = platform_sentiments
+    return sentiment_results
+
+# Display sentiment charts per platform with NaN handling
+def display_sentiment_charts(sentiment_results):
+    for platform, sentiments in sentiment_results.items():
+        st.subheader(f"Sentiment Distribution on {platform}")
+        
+        # Handle NaN by converting values to 0 if NaN
+        positive = sentiments.get("positive", 0) or 0
+        negative = sentiments.get("negative", 0) or 0
+        neutral = sentiments.get("neutral", 0) or 0
+
+        # Check for total mentions to prevent division by zero
+        total_mentions = positive + negative + neutral
+        if total_mentions == 0:
+            st.write(f"No sentiment data available for {platform}.")
+            continue
+
+        # Prepare sizes and labels for pie chart
+        labels = ['Positive', 'Negative', 'Neutral']
+        sizes = [positive, negative, neutral]
+
+        # Create pie chart
+        fig, ax = plt.subplots()
+        ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+        ax.axis('equal')  # Equal aspect ratio ensures the pie chart is circular.
+        st.pyplot(fig)
+
+# JSON parsing with error handling
+def parse_report_output(report_output):
+    try:
+        json_str = report_output.strip('```json\n').strip('\n```')
+        report_data = json.loads(json_str)
+        return report_data
+    except json.JSONDecodeError as e:
+        st.write("Error parsing JSON report.")
+        st.write(str(e))
+        return None
+
+# Display Key Themes and Recommendations
+def display_key_themes_and_recommendations(report_data):
+    themes = report_data.get('notable_themes', {})
+    recommendations = report_data.get('conclusion', {}).get('recommendations', [])
+    
+    # Display Key Themes
+    st.subheader("Key Themes")
+    for theme, details in themes.items():
+        st.write(f"- **{theme.replace('_', ' ').title()}**: {details.get('description', 'No description provided')}")
+
+    # Display Recommendations
+    st.subheader("Recommendations")
+    for rec in recommendations:
+        st.write(f"- {rec['recommendation']}")
 
 # Create agents with crewai for research and analysis
 def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
-        goal=f"Research and gather information about {brand_name} from various sources",
+        goal=f"Research and gather information about {brand_name} from various sources.",
         backstory="You are an expert researcher with a knack for finding relevant information quickly.",
         verbose=True,
         allow_delegation=False,
@@ -41,7 +123,7 @@ def create_agents(brand_name, llm):
 
     social_media_monitor = Agent(
         role="Social Media Monitor",
-        goal=f"Monitor social media platforms for mentions of {brand_name}",
+        goal=f"Monitor social media platforms for mentions of {brand_name}.",
         backstory="You are an experienced social media analyst with keen eyes for trends and mentions.",
         verbose=True,
         allow_delegation=False,
@@ -52,7 +134,7 @@ def create_agents(brand_name, llm):
 
     sentiment_analyzer = Agent(
         role="Sentiment Analyzer",
-        goal=f"Analyze the sentiment of social media mentions about {brand_name}",
+        goal=f"Analyze the sentiment of social media mentions about {brand_name}.",
         backstory="You are an expert in natural language processing and sentiment analysis.",
         verbose=True,
         allow_delegation=False,
@@ -62,7 +144,7 @@ def create_agents(brand_name, llm):
 
     report_generator = Agent(
         role="Report Generator",
-        goal=f"Generate comprehensive reports based on the analysis of {brand_name}",
+        goal=f"Generate comprehensive reports based on the analysis of {brand_name}.",
         backstory="You are a skilled data analyst and report writer, adept at presenting insights clearly.",
         verbose=True,
         allow_delegation=False,
@@ -115,16 +197,6 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-
-            # Check structure of result and debug
-            if not result or "tasks_output" not in dir(result):
-                st.write("Debug: Result object or tasks_output is missing")
-                continue
-
-            # Ensure each task's output is accessible
-            for idx, task_output in enumerate(result.tasks_output):
-                st.write(f"Debug: Task {idx + 1} - {task_output.raw}")
-
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -135,25 +207,52 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Format the final report nicely
+# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
+    st.write("---")
+
+    # Extract task outputs
+    task_outputs = result.tasks_output
+
+    # Section 1: Research Findings
+    st.subheader("1. Research Findings")
+    research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
+    st.write(research_output)
+
+    # Section 2: Social Media Mentions
+    st.subheader("2. Social Media Mentions")
+    mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
+    st.write(mentions_output)
+
+    # Section 3: Sentiment Analysis
+    st.subheader("3. Sentiment Analysis")
+    sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
+    st.write(sentiment_output)
+
+    # Section 4: Key Themes and Recommendations
+    st.subheader("4. Key Themes and Recommendations")
+    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
     
+    # Try to parse JSON data from the report generator output
     try:
-        st.write("Debug: Result Keys")
-        st.write(list(result.tasks_output))
+        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+        themes = report_data.get('notable_themes', {})
+        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
 
-        for idx, task_output in enumerate(result.tasks_output):
-            # Print each part of the task output
-            task_summary = getattr(task_output, "summary", "No summary available.")
-            task_raw = getattr(task_output, "raw", "No raw output available.")
-            st.subheader(f"Section {idx + 1}: Task {idx + 1} Output")
-            st.write(task_summary)
-            st.write(task_raw)
+        # Display themes
+        st.write("**Notable Themes:**")
+        for theme_key, theme_info in themes.items():
+            st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
 
-    except AttributeError as e:
-        st.error("There was an error accessing the output structure.")
-        st.write("Debug: Error Details:", str(e))
+        # Display recommendations
+        st.write("**Recommendations:**")
+        for rec in recommendations:
+            st.write(f"- {rec['recommendation']}")
+
+    except (json.JSONDecodeError, KeyError) as e:
+        st.write("Error parsing the JSON-formatted report.")
+        st.write(report_output)
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
