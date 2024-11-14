@@ -161,15 +161,13 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-
-    # Display the tool output verbatim as it appears in the logs
     if mentions_output:
         st.write("## Tool Output:")
         st.write(mentions_output)
     else:
         st.write("No online mentions available.")
 
-    # Section 3: Sentiment Analysis (Concise Overview)
+    # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
     sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
     st.write(sentiment_output)
@@ -186,46 +184,29 @@ def display_formatted_report(brand_name, result):
         # Access the 'report' section in the JSON data
         report = report_data.get("report", {})
 
-        # Sentiment distribution and key insights
+        # Sentiment Distribution
         sentiment_distribution = report.get("sentiment_distribution", {})
-        key_insights = report.get("key_insights", [])
-        recommendations = report.get("recommendations", [])
-
-        # Detailed Sentiment Distribution
         if sentiment_distribution:
             st.write("**Sentiment Distribution (Detailed Metrics)**")
             st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', 'N/A')}%")
             st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', 'N/A')}%")
             st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', 'N/A')}%")
 
-        # Display Key Insights
+        # Key Insights
+        key_insights = report.get("key_insights", [])
         if isinstance(key_insights, list):
             st.write("**Key Insights**")
             for insight in key_insights:
                 st.write(f"- **{insight.get('theme', 'Unknown Theme')}**")
                 st.write(f"  - Description: {insight.get('description', 'No description available')}")
-        elif isinstance(key_insights, dict):  # In case it is provided as a dictionary
-            for theme, details in key_insights.items():
-                st.write(f"- **{theme.replace('_', ' ').title()}**")
-                st.write(f"  - Description: {details.get('description', 'No description available')}")
 
-        # Display Recommendations
+        # Recommendations
+        recommendations = report.get("recommendations", [])
         if isinstance(recommendations, list):
             st.write("**Recommendations**")
             for recommendation in recommendations:
                 st.write(f"- **{recommendation.get('recommendation', 'No recommendation specified')}**")
                 st.write(f"  - Description: {recommendation.get('description', 'No description available')}")
-        elif isinstance(recommendations, dict):  # Handling if recommendations are nested under categories
-            if "to_improve_sentiment" in recommendations:
-                st.write("**To Improve Sentiment**")
-                for rec in recommendations["to_improve_sentiment"]:
-                    st.write(f"- **Action**: {rec.get('action', 'No action specified')}")
-                    st.write(f"  - Description: {rec.get('description', 'No description available')}")
-            if "to_improve_engagement" in recommendations:
-                st.write("**To Improve Engagement**")
-                for rec in recommendations["to_improve_engagement"]:
-                    st.write(f"- **Action**: {rec.get('action', 'No action specified')}")
-                    st.write(f"  - Description: {rec.get('description', 'No description available')}")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
