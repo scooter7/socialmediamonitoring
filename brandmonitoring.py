@@ -1,3 +1,5 @@
+import json
+import re
 import sys
 import pysqlite3
 sys.modules["sqlite3"] = pysqlite3
@@ -10,8 +12,6 @@ from crewai import Agent, Task, Crew
 from crewai_tools import SerperDevTool
 from langchain_openai import ChatOpenAI
 import openai
-import json
-import re
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,25 +26,6 @@ search_tool = SerperDevTool()
 # Function to create LLM using GPT-4o-mini
 def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
-
-# Enhanced function to fetch online mentions with error handling
-def fetch_mentions(brand_name):
-    sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
-    mentions = {}
-    for source in sources:
-        try:
-            result = search_tool.search(brand_name)
-            mentions[source] = parse_tool_output(result) if result else []
-        except Exception as e:
-            st.warning(f"Could not retrieve data from {source}. Error: {e}")
-            mentions[source] = []  # Store an empty list if an error occurs
-    return mentions
-
-# Parse tool output to extract structured data
-def parse_tool_output(tool_output):
-    entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
-    parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
-    return parsed_results
 
 # Create agents with CrewAI for research and analysis
 def create_agents(brand_name, llm):
@@ -145,7 +126,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Function to parse JSON data for Online Mentions
+# Function to parse JSON data for Online Mentions and Sentiment Analysis
 def parse_json_output(report_output):
     try:
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
@@ -176,7 +157,7 @@ def display_formatted_report(brand_name, result):
     research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
     st.write(research_output)
 
-    # Section 2: Online Mentions - Parse JSON report data
+    # Section 2: Online Mentions and Sentiment Analysis
     st.subheader("2. Online Mentions and Sentiment Analysis")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
 
@@ -205,7 +186,7 @@ def display_formatted_report(brand_name, result):
         for theme in notable_themes:
             st.write(f"- **{theme.get('theme', 'No Theme')}**: {theme.get('description', 'No description')}")
 
-    # Section 3: Sentiment Analysis
+    # Section 3: Recommendations
     st.subheader("3. Recommendations")
     if recommendations:
         for recommendation in recommendations:
