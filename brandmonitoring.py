@@ -151,6 +151,8 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
+import json
+
 # Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
@@ -188,33 +190,44 @@ def display_formatted_report(brand_name, result):
     # Section 4: Key Themes and Recommendations
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
-    
-    try:
-        # Extract JSON data for themes and recommendations
-        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
-        st.write("Raw JSON report data:", report_data)  # Debug: Show raw JSON report data
-        
-        themes = report_data.get('notable_themes', {})
-        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
 
-        # Display extracted themes
+    try:
+        # Clean up the JSON string and parse it
+        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+        
+        # Safely extract notable themes and recommendations
+        themes = report_data.get('social_media_analysis', {}).get('notable_themes', {})
+        recommendations = report_data.get('social_media_analysis', {}).get('recommendations', {})
+
+        # Display notable themes
         if themes:
             st.write("**Notable Themes:**")
             for theme_key, theme_info in themes.items():
-                st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
+                description = theme_info.get("description", "No description available")
+                impact = theme_info.get("impact", "No impact specified")
+                hashtags = theme_info.get("hashtags", [])
+                
+                st.write(f"- **{theme_key.replace('_', ' ').title()}**")
+                st.write(f"  - Description: {description}")
+                st.write(f"  - Impact: {impact}")
+                st.write(f"  - Hashtags: {' '.join(hashtags) if hashtags else 'None'}")
+                st.write("---")
         else:
             st.write("No notable themes available.")
 
-        # Display extracted recommendations
+        # Display recommendations
         if recommendations:
             st.write("**Recommendations:**")
-            for rec in recommendations:
-                st.write(f"- {rec['recommendation']}")
+            for rec_key, rec_value in recommendations.items():
+                st.write(f"- **{rec_key.replace('_', ' ').title()}:** {rec_value}")
         else:
             st.write("No recommendations available.")
-    except (json.JSONDecodeError, KeyError, AttributeError) as e:
-        st.write("Error parsing the JSON-formatted report.")
+    except json.JSONDecodeError as e:
+        st.error("Error parsing JSON data. Please check the JSON format.")
+        st.write("Raw JSON data:")
         st.write(report_output)
+    except Exception as e:
+        st.error(f"Unexpected error: {e}")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
