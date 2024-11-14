@@ -177,45 +177,55 @@ def display_formatted_report(brand_name, result):
     st.write(sentiment_output)
 
     # Section 4: Key Themes and Recommendations
-    st.subheader("4. Key Themes and Recommendations")
-    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
+st.subheader("4. Key Themes and Recommendations")
+report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
 
-    try:
-        # Clean JSON output by removing backticks and extra formatting
-        report_output_cleaned = re.sub(r'```(?:json)?\n|\n```', '', report_output)
-        report_data = json.loads(report_output_cleaned)
+try:
+    # Clean JSON output by removing backticks and extra formatting
+    report_output_cleaned = re.sub(r'```(?:json)?\n|\n```', '', report_output)
+    
+    # Display the cleaned JSON output for debugging
+    st.write("Debug: Cleaned JSON Output")
+    st.write(report_output_cleaned)
+    
+    # Attempt to parse the JSON data
+    report_data = json.loads(report_output_cleaned)
 
-        # Display structured information
-        st.write("**Sentiment Distribution**")
-        sentiment_distribution = report_data["sentiment_analysis"]["sentiment_distribution"]
-        st.write(f"- Positive Mentions: {sentiment_distribution['positive_mentions']['percentage']}%")
-        st.write(f"- Neutral Mentions: {sentiment_distribution['neutral_mentions']['percentage']}%")
-        st.write(f"- Negative Mentions: {sentiment_distribution['negative_mentions']['percentage']}%")
+    # Display structured information
+    st.write("**Sentiment Distribution**")
+    sentiment_distribution = report_data["sentiment_analysis"]["sentiment_distribution"]
+    st.write(f"- Positive Mentions: {sentiment_distribution['positive_mentions']['percentage']}%")
+    st.write(f"- Neutral Mentions: {sentiment_distribution['neutral_mentions']['percentage']}%")
+    st.write(f"- Negative Mentions: {sentiment_distribution['negative_mentions']['percentage']}%")
 
-        st.write("**Key Insights**")
-        for sentiment_type, insights in sentiment_distribution.items():
-            st.write(f"- **{sentiment_type.capitalize()}**: Key Insights")
-            for insight in insights.get("key_insights", []):
-                st.write(f"  - {insight}")
+    st.write("**Key Insights**")
+    for sentiment_type, insights in sentiment_distribution.items():
+        st.write(f"- **{sentiment_type.capitalize()}**: Key Insights")
+        for insight in insights.get("key_insights", []):
+            st.write(f"  - {insight}")
 
-        st.write("**Notable Themes**")
-        for theme_name, theme_details in report_data["sentiment_analysis"]["notable_themes"].items():
-            st.write(f"- **{theme_name.replace('_', ' ').title()}**")
-            st.write(f"  - Description: {theme_details['description']}")
-            st.write(f"  - Hashtags: {', '.join(theme_details.get('hashtags', []))}")
-            st.write(f"  - Impact: {theme_details.get('impact', '')}")
-            st.write(f"  - Concerns: {', '.join(theme_details.get('concerns', [])) if 'concerns' in theme_details else ''}")
-            st.write(f"  - Recommendation: {theme_details.get('recommendation', '')}")
+    st.write("**Notable Themes**")
+    for theme_name, theme_details in report_data["sentiment_analysis"]["notable_themes"].items():
+        st.write(f"- **{theme_name.replace('_', ' ').title()}**")
+        st.write(f"  - Description: {theme_details['description']}")
+        st.write(f"  - Hashtags: {', '.join(theme_details.get('hashtags', []))}")
+        st.write(f"  - Impact: {theme_details.get('impact', '')}")
+        st.write(f"  - Concerns: {', '.join(theme_details.get('concerns', [])) if 'concerns' in theme_details else ''}")
+        st.write(f"  - Recommendation: {theme_details.get('recommendation', '')}")
 
-        st.write("**Conclusion**")
-        conclusion = report_data["conclusion"]
-        st.write(f"- Overall Sentiment: {conclusion['overall_sentiment']}")
-        st.write(f"- Strengths: {', '.join(conclusion['strengths'])}")
-        st.write(f"- Areas for Improvement: {', '.join(conclusion['areas_for_improvement'])}")
-        st.write(f"- Strategic Recommendation: {conclusion['strategic_recommendation']}")
-        
-    except (json.JSONDecodeError, KeyError, AttributeError) as e:
-        st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
+    st.write("**Conclusion**")
+    conclusion = report_data["conclusion"]
+    st.write(f"- Overall Sentiment: {conclusion['overall_sentiment']}")
+    st.write(f"- Strengths: {', '.join(conclusion['strengths'])}")
+    st.write(f"- Areas for Improvement: {', '.join(conclusion['areas_for_improvement'])}")
+    st.write(f"- Strategic Recommendation: {conclusion['strategic_recommendation']}")
+    
+except (json.JSONDecodeError, KeyError, AttributeError) as e:
+    st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
+    st.write("Debugging Information:")
+    st.write(f"Raw report output: {report_output}")
+    st.write(f"Cleaned report output: {report_output_cleaned}")
+    st.write(f"Error details: {str(e)}")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
