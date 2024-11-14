@@ -117,62 +117,64 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Function to display mentions in Section 2
-def display_mentions(mentions_data):
-    if mentions_data:
-        for mention in mentions_data:
-            title = mention.get("title", "No title available")
-            link = mention.get("link", "No link available")
-            snippet = mention.get("snippet", "No snippet available")
-            st.write(f"**Title:** {title}\n**Link:** {link}\n**Snippet:** {snippet}\n---")
-    else:
-        st.write("No online mentions or sentiment data available.")
+# Function to display Platform Breakdown for Section 2
+def display_platform_breakdown(platform_data):
+    for platform, sentiments in platform_data.items():
+        st.write(f"### {platform}")
+        for sentiment, posts in sentiments.items():
+            st.write(f"**{sentiment.capitalize()} Mentions:**")
+            for post in posts:
+                st.write(f"- {post}")
+        st.write("---")
 
-# Function to parse and display the report content, including all three sections
+# Function to parse and display the report content for Section 2
 def parse_and_display_report(report_output):
     try:
-        report = report_output.get("report", {})
+        report = report_output.get("DMACC_Sentiment_Analysis_Report", {})
 
-        # Section 2: Sentiment Distribution
+        # Section 2: Overall Sentiment Distribution
         st.subheader("2. Online Mentions and Sentiment Analysis")
-        sentiment_data = report.get("sentiment_distribution", {})
-        if sentiment_data:
-            st.write("### Sentiment Distribution")
-            for sentiment, details in sentiment_data.items():
-                percentage = details.get("percentage", "N/A")
-                description = details.get("description", "No description available")
-                st.write(f"**{sentiment.capitalize()} Mentions ({percentage}%):** {description}")
+        overall_sentiment = report.get("Overall_Sentiment", {})
+        if overall_sentiment:
+            st.write("### Overall Sentiment Distribution")
+            for sentiment, percentage in overall_sentiment.items():
+                st.write(f"**{sentiment.replace('_', ' ')}:** {percentage}")
             st.write("---")
 
-        # Section 2: Notable Themes
-        notable_themes = report.get("notable_themes", [])
+        # Platform Breakdown
+        platform_breakdown = report.get("Platform_Breakdown", {})
+        if platform_breakdown:
+            st.write("### Platform Breakdown")
+            display_platform_breakdown(platform_breakdown)
+        else:
+            st.write("No platform breakdown data available.")
+
+        # Notable Themes
+        notable_themes = report.get("Notable_Themes", [])
         if notable_themes:
             st.write("### Notable Themes")
             for theme in notable_themes:
-                st.write(f"**{theme['theme']}:** {theme['description']}")
-            st.write("---")
+                st.write(f"- {theme}")
         else:
             st.write("No notable themes available.")
-            
     except Exception as e:
         st.error(f"Error displaying report: {e}")
 
-# Function to display the recommendations in Section 3
+# Function to display recommendations for Section 3
 def display_recommendations(report_output):
     try:
         st.subheader("3. Recommendations")
-        recommendations = report_output.get("report", {}).get("recommendations", [])
+        recommendations = report_output.get("DMACC_Sentiment_Analysis_Report", {}).get("Recommendations", [])
         if recommendations:
             for recommendation in recommendations:
-                action = recommendation.get("action", "No action available")
-                description = recommendation.get("description", "No description available")
-                st.write(f"**{action}:** {description}")
+                st.write(f"- {recommendation}")
             st.write("---")
         else:
             st.write("No recommendations available.")
     except Exception as e:
         st.error(f"Error displaying recommendations: {e}")
 
-# Main display function, including all three sections
+# Main display function
 def display_formatted_report(brand_name, report_output):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
