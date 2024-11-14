@@ -27,7 +27,7 @@ search_tool = SerperDevTool()
 def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
-# Enhanced function to fetch social media mentions and news with error handling
+# Enhanced function to fetch online mentions with error handling
 def fetch_mentions(brand_name):
     sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
     mentions = {}
@@ -122,7 +122,7 @@ def create_tasks(brand_name, agents):
 
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
-# Run social media monitoring and sentiment analysis workflow
+# Run online monitoring and sentiment analysis workflow
 def run_social_media_monitoring(brand_name, max_retries=3):
     llm = create_llm()
     agents = create_agents(brand_name, llm)
@@ -148,9 +148,8 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display formatted report based on task outputs
-# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
-    st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
+    st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
     # Extract task outputs
@@ -161,8 +160,8 @@ def display_formatted_report(brand_name, result):
     research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
     st.write(research_output)
 
-    # Section 2: Social Media Mentions
-    st.subheader("2. Social Media Mentions")
+    # Section 2: Online Mentions
+    st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
     try:
         parsed_mentions = parse_tool_output(mentions_output)
@@ -173,7 +172,7 @@ def display_formatted_report(brand_name, result):
                 st.write(f"**Snippet:** {mention['snippet']}")
                 st.write("---")
         else:
-            st.write("No social media mentions available.")
+            st.write("No online mentions available.")
     except Exception as e:
         st.error(f"Error displaying mentions: {e}")
 
@@ -186,15 +185,14 @@ def display_formatted_report(brand_name, result):
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
     
-    # Display JSON data if available
     try:
+        # Extract JSON data for themes and recommendations
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         
-        # Safely extract themes and recommendations as dictionaries
-        themes = report_data.get('notable_themes', {}) if isinstance(report_data.get('notable_themes'), dict) else {}
-        recommendations = report_data.get('conclusion', {}).get('recommendations', []) if isinstance(report_data.get('conclusion', {}).get('recommendations'), list) else []
+        themes = report_data.get('notable_themes', {})
+        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
 
-        # Display themes
+        # Display extracted themes
         if themes:
             st.write("**Notable Themes:**")
             for theme_key, theme_info in themes.items():
@@ -202,7 +200,7 @@ def display_formatted_report(brand_name, result):
         else:
             st.write("No notable themes available.")
 
-        # Display recommendations
+        # Display extracted recommendations
         if recommendations:
             st.write("**Recommendations:**")
             for rec in recommendations:
@@ -214,8 +212,8 @@ def display_formatted_report(brand_name, result):
         st.write(report_output)
 
 # Streamlit app interface
-st.title("Social Media Monitoring and Sentiment Analysis")
-st.write("Analyze a brand or topic with integrated social media monitoring, sentiment analysis, and report generation.")
+st.title("Online and Sentiment Analysis Report")
+st.write("Analyze a brand or topic with integrated online monitoring, sentiment analysis, and report generation.")
 
 # User input for brand or topic
 brand_name = st.text_input("Enter the Brand or Topic Name")
@@ -223,7 +221,7 @@ brand_name = st.text_input("Enter the Brand or Topic Name")
 # Run the analysis on button click
 if st.button("Start Analysis"):
     if brand_name:
-        st.write("Starting social media monitoring and sentiment analysis...")
+        st.write("Starting online monitoring and sentiment analysis...")
         result = run_social_media_monitoring(brand_name)
         
         if result:
