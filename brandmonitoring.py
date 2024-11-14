@@ -176,10 +176,8 @@ def display_formatted_report(brand_name, result):
     sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
     st.write(sentiment_output)
 
-    # Section 4: Key Themes and Recommendations (Detailed Metrics)
-    st.subheader("4. Key Themes and Recommendations")
+    # Section 4: Key Themes and Recommendations (only if data is available)
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
-
     try:
         # Clean JSON output and parse it
         report_output_cleaned = re.sub(r'```(?:json)?\n|\n```', '', report_output)
@@ -188,31 +186,37 @@ def display_formatted_report(brand_name, result):
         # Access the 'report' section in the JSON data
         report = report_data.get("report", {})
 
-        # Detailed Sentiment Distribution (If metrics are provided separately from the summary)
-        sentiment_analysis = report.get("sentiment_analysis", {})
-        if sentiment_analysis:
-            st.write("**Sentiment Distribution (Detailed Metrics)**")
-            st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
-            st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral_mentions', 'N/A')}")
-            st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
-            st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
-
-        # Display Key Insights only if available
+        # Check if there's data in Key Insights or Recommendations
         key_insights = report.get("key_insights", {})
-        if key_insights:
-            st.write("**Key Insights**")
-            for key, insight in key_insights.items():
-                st.write(f"- **{key.replace('_', ' ').title()}**")
-                st.write(f"  - Description: {insight.get('description', 'No description available')}")
-                st.write(f"  - Feedback: {insight.get('feedback', 'No feedback available')}")
-
-        # Display Recommendations only if available
         recommendations = report.get("recommendations", [])
-        if recommendations:
-            st.write("**Recommendations**")
-            for recommendation in recommendations:
-                st.write(f"- **{recommendation.get('action', 'No action specified')}**")
-                st.write(f"  - {recommendation.get('details', 'No additional details provided')}")
+
+        if key_insights or recommendations:
+            # Only display this section if either Key Insights or Recommendations are available
+            st.subheader("4. Key Themes and Recommendations")
+
+            # Detailed Sentiment Distribution (If metrics are provided separately from the summary)
+            sentiment_analysis = report.get("sentiment_analysis", {})
+            if sentiment_analysis:
+                st.write("**Sentiment Distribution (Detailed Metrics)**")
+                st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
+                st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral_mentions', 'N/A')}")
+                st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
+                st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
+
+            # Display Key Insights only if available
+            if key_insights:
+                st.write("**Key Insights**")
+                for key, insight in key_insights.items():
+                    st.write(f"- **{key.replace('_', ' ').title()}**")
+                    st.write(f"  - Description: {insight.get('description', 'No description available')}")
+                    st.write(f"  - Feedback: {insight.get('feedback', 'No feedback available')}")
+
+            # Display Recommendations only if available
+            if recommendations:
+                st.write("**Recommendations**")
+                for recommendation in recommendations:
+                    st.write(f"- **{recommendation.get('action', 'No action specified')}**")
+                    st.write(f"  - {recommendation.get('details', 'No additional details provided')}")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
