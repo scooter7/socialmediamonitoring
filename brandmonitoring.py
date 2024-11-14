@@ -11,6 +11,7 @@ from crewai_tools import SerperDevTool
 from langchain_openai import ChatOpenAI
 import openai
 import matplotlib.pyplot as plt
+import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -134,27 +135,27 @@ def display_formatted_report(brand_name, result):
     research_key = "Research DMACC and summarize online presence and activities."
     if research_key in result:
         st.subheader("1. Research Findings")
-        research_data = result[research_key].get("raw_output", "No research findings available.")
+        research_data = result.get(research_key, {}).get("raw_output", "No research findings available.")
         st.write(research_data)
 
     # Section 2: Social Media Mentions
     mentions_key = "Monitor social media platforms for mentions of 'DMACC'."
     if mentions_key in result:
         st.subheader("2. Social Media Mentions")
-        mentions_data = result[mentions_key].get("raw_output", "No social media mentions available.")
+        mentions_data = result.get(mentions_key, {}).get("raw_output", "No social media mentions available.")
         st.write(mentions_data)
 
     # Section 3: Sentiment Analysis
     sentiment_key = "Analyze sentiment of the social media mentions about DMACC."
     if sentiment_key in result:
         st.subheader("3. Sentiment Analysis")
-        sentiment_data = result[sentiment_key].get("raw_output", "No sentiment analysis available.")
+        sentiment_data = result.get(sentiment_key, {}).get("raw_output", "No sentiment analysis available.")
         st.write(sentiment_data)
         
         # Display Sentiment Distribution Chart if data is available
         if "positive" in sentiment_data.lower() or "negative" in sentiment_data.lower():
             st.subheader("Sentiment Distribution")
-            sentiment_breakdown = {"Positive": 70, "Neutral": 20, "Negative": 10}  # Sample values
+            sentiment_breakdown = {"Positive": 70, "Neutral": 20, "Negative": 10}  # Sample values for testing
             labels = list(sentiment_breakdown.keys())
             sizes = list(sentiment_breakdown.values())
             fig, ax = plt.subplots()
@@ -166,7 +167,7 @@ def display_formatted_report(brand_name, result):
     st.subheader("4. Key Themes Identified")
     themes_key = "Generate a JSON-formatted report for DMACC based on findings."
     if themes_key in result:
-        json_data = result[themes_key].get("raw_output", {}).get("themes_identified", [])
+        json_data = json.loads(result[themes_key]["raw_output"]).get("report", {}).get("themes_identified", [])
         if json_data:
             for theme in json_data:
                 st.write(f"**Theme**: {theme['theme']}")
@@ -178,7 +179,7 @@ def display_formatted_report(brand_name, result):
     recommendations_key = themes_key
     if recommendations_key in result:
         st.subheader("5. Recommendations")
-        recommendations = result[recommendations_key].get("raw_output", {}).get("recommendations", [])
+        recommendations = json.loads(result[recommendations_key]["raw_output"]).get("report", {}).get("recommendations", [])
         if recommendations:
             for recommendation in recommendations:
                 st.write(f"- **{recommendation}**")
