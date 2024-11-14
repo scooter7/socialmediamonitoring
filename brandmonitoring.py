@@ -188,46 +188,44 @@ def display_formatted_report(brand_name, result):
 
         # Sentiment distribution and key insights
         sentiment_distribution = report.get("sentiment_distribution", {})
-        key_insights = report.get("key_insights", {})
-        recommendations = report.get("recommendations", {})
+        key_insights = report.get("key_insights", [])
+        recommendations = report.get("recommendations", [])
 
         # Detailed Sentiment Distribution
         if sentiment_distribution:
             st.write("**Sentiment Distribution (Detailed Metrics)**")
-            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive_mentions', 'N/A')}%")
-            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative_mentions', 'N/A')}%")
-            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral_mentions', 'N/A')}%")
+            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', 'N/A')}%")
+            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', 'N/A')}%")
+            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', 'N/A')}%")
 
         # Display Key Insights
-        if isinstance(key_insights, dict):
+        if isinstance(key_insights, list):
             st.write("**Key Insights**")
+            for insight in key_insights:
+                st.write(f"- **{insight.get('theme', 'Unknown Theme')}**")
+                st.write(f"  - Description: {insight.get('description', 'No description available')}")
+        elif isinstance(key_insights, dict):  # In case it is provided as a dictionary
             for theme, details in key_insights.items():
                 st.write(f"- **{theme.replace('_', ' ').title()}**")
                 st.write(f"  - Description: {details.get('description', 'No description available')}")
-        else:
-            st.write("Key insights were provided as a string and could not be displayed as structured data.")
 
         # Display Recommendations
-        if isinstance(recommendations, dict):
+        if isinstance(recommendations, list):
             st.write("**Recommendations**")
-            
-            # Handle 'to_improve_sentiment' recommendations
-            sentiment_recommendations = recommendations.get("to_improve_sentiment", [])
-            if sentiment_recommendations:
+            for recommendation in recommendations:
+                st.write(f"- **{recommendation.get('recommendation', 'No recommendation specified')}**")
+                st.write(f"  - Description: {recommendation.get('description', 'No description available')}")
+        elif isinstance(recommendations, dict):  # Handling if recommendations are nested under categories
+            if "to_improve_sentiment" in recommendations:
                 st.write("**To Improve Sentiment**")
-                for recommendation in sentiment_recommendations:
-                    st.write(f"- **Action**: {recommendation.get('action', 'No action specified')}")
-                    st.write(f"  - Description: {recommendation.get('description', 'No description available')}")
-
-            # Handle 'to_improve_engagement' recommendations
-            engagement_recommendations = recommendations.get("to_improve_engagement", [])
-            if engagement_recommendations:
+                for rec in recommendations["to_improve_sentiment"]:
+                    st.write(f"- **Action**: {rec.get('action', 'No action specified')}")
+                    st.write(f"  - Description: {rec.get('description', 'No description available')}")
+            if "to_improve_engagement" in recommendations:
                 st.write("**To Improve Engagement**")
-                for recommendation in engagement_recommendations:
-                    st.write(f"- **Action**: {recommendation.get('action', 'No action specified')}")
-                    st.write(f"  - Description: {recommendation.get('description', 'No description available')}")
-        else:
-            st.write("Recommendations were provided as a string and could not be displayed as structured data.")
+                for rec in recommendations["to_improve_engagement"]:
+                    st.write(f"- **Action**: {rec.get('action', 'No action specified')}")
+                    st.write(f"  - Description: {rec.get('description', 'No description available')}")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
