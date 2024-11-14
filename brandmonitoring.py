@@ -188,7 +188,7 @@ def display_formatted_report(brand_name, result):
         # Access the 'report' section in the JSON data
         report = report_data.get("report", {})
 
-        # Sentiment Analysis
+        # Sentiment Distribution
         st.write("**Sentiment Distribution**")
         sentiment_analysis = report.get("sentiment_analysis", {})
         st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
