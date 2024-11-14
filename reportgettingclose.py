@@ -34,7 +34,7 @@ def fetch_mentions(brand_name):
     for source in sources:
         try:
             result = search_tool.search(brand_name)
-            st.write(f"Raw result from {source}: {result}")  # Debug: Show raw result from search tool
+            # mentions[source] will now store parsed mentions directly
             mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
@@ -43,12 +43,9 @@ def fetch_mentions(brand_name):
 
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
-    # Debug: Show raw tool output before parsing
-    st.write("Raw tool output:", tool_output)
     # Adjust regex to capture mentions if the format has changed
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
-    st.write("Parsed mentions:", parsed_results)  # Debug: Show parsed mentions
     return parsed_results
 
 # Create agents with CrewAI for research and analysis
@@ -140,7 +137,6 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-            st.write("Raw result from CrewAI:", result)  # Debug: Show raw CrewAI result
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -170,10 +166,10 @@ def display_formatted_report(brand_name, result):
     parsed_mentions = parse_tool_output(mentions_output)
     if parsed_mentions:
         for mention in parsed_mentions:
-            st.write(f"**Title:** {mention['title']}")
-            st.write(f"**Link:** [Read more]({mention['link']})")
-            st.write(f"**Snippet:** {mention['snippet']}")
-            st.write("---")
+            st.markdown(f"**Title:** {mention['title']}")
+            st.markdown(f"**Link:** [Read more]({mention['link']})")
+            st.markdown(f"**Snippet:** {mention['snippet']}")
+            st.markdown("---")
     else:
         st.write("No online mentions available.")
 
@@ -185,34 +181,43 @@ def display_formatted_report(brand_name, result):
     # Section 4: Key Themes and Recommendations
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
-    
+
     try:
-        # Parse JSON-formatted report
-        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))["report"]
-        
+        # Clean JSON output and parse it
+        report_output_cleaned = report_output.strip('```json\n').strip('\n```')
+        report_data = json.loads(report_output_cleaned)
+
         # Display structured information
         st.write("**Sentiment Distribution**")
-        st.write(f"- Positive Mentions: {report_data['sentiment_distribution']['positive_mentions']}%")
-        st.write(f"- Neutral Mentions: {report_data['sentiment_distribution']['neutral_mentions']}%")
-        st.write(f"- Negative Mentions: {report_data['sentiment_distribution']['negative_mentions']}%")
+        sentiment_distribution = report_data["sentiment_analysis"]["sentiment_distribution"]
+        st.write(f"- Positive Mentions: {sentiment_distribution['positive_mentions']['percentage']}%")
+        st.write(f"- Neutral Mentions: {sentiment_distribution['neutral_mentions']['percentage']}%")
+        st.write(f"- Negative Mentions: {sentiment_distribution['negative_mentions']['percentage']}%")
 
         st.write("**Key Insights**")
-        for theme, details in report_data["key_insights"].items():
-            st.write(f"- **{theme.replace('_', ' ').title()}**: {details['description']}")
-            if "positive_comments" in details:
-                st.write("  - Positive Comments: " + ", ".join(details["positive_comments"]))
-            if "negative_comments" in details:
-                st.write("  - Negative Comments: " + ", ".join(details["negative_comments"]))
-            if "examples" in details:
-                st.write("  - Examples: " + ", ".join(details["examples"]))
-            if "hashtags" in details:
-                st.write("  - Hashtags: " + ", ".join(details["hashtags"]))
+        for sentiment_type, insights in sentiment_distribution.items():
+            st.write(f"- **{sentiment_type.capitalize()}**: Key Insights")
+            for insight in insights.get("key_insights", []):
+                st.write(f"  - {insight}")
 
-        st.write("**Recommendations**")
-        for rec in report_data["recommendations"]:
-            st.write(f"- **{rec['focus_area']}**: {rec['action']}")
-    except (json.JSONDecodeError, KeyError, AttributeError):
-        st.write("Error parsing the JSON-formatted report.")
+        st.write("**Notable Themes**")
+        for theme_name, theme_details in report_data["sentiment_analysis"]["notable_themes"].items():
+            st.write(f"- **{theme_name.replace('_', ' ').title()}**")
+            st.write(f"  - Description: {theme_details['description']}")
+            st.write(f"  - Hashtags: {', '.join(theme_details.get('hashtags', []))}")
+            st.write(f"  - Impact: {theme_details.get('impact', '')}")
+            st.write(f"  - Concerns: {', '.join(theme_details.get('concerns', [])) if 'concerns' in theme_details else ''}")
+            st.write(f"  - Recommendation: {theme_details.get('recommendation', '')}")
+
+        st.write("**Conclusion**")
+        conclusion = report_data["conclusion"]
+        st.write(f"- Overall Sentiment: {conclusion['overall_sentiment']}")
+        st.write(f"- Strengths: {', '.join(conclusion['strengths'])}")
+        st.write(f"- Areas for Improvement: {', '.join(conclusion['areas_for_improvement'])}")
+        st.write(f"- Strategic Recommendation: {conclusion['strategic_recommendation']}")
+        
+    except (json.JSONDecodeError, KeyError, AttributeError) as e:
+        st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
