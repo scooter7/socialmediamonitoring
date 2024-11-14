@@ -183,39 +183,28 @@ def display_formatted_report(brand_name, task_outputs):
     st.write("**Raw Report Output**", report_output)
 
     try:
-        # Clean JSON output and parse it
-        report_output_cleaned = report_output.strip('```json\n').strip('\n```')
+        # Remove triple backticks from report output for clean JSON parsing
+        report_output_cleaned = report_output.replace("```json", "").replace("```", "").strip()
         report_data = json.loads(report_output_cleaned)
 
         # Display structured information if available
         st.write("**Sentiment Distribution**")
-        sentiment_distribution = report_data.get("sentiment_distribution", {})
+        sentiment_distribution = report_data.get("social_media_sentiment_analysis", {}).get("sentiment_distribution", {})
         if sentiment_distribution:
-            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', {}).get('percentage', 'Data unavailable')}%")
-            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', {}).get('percentage', 'Data unavailable')}%")
-            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', {}).get('percentage', 'Data unavailable')}%")
-
-            # Display insights for each sentiment type
-            for sentiment, data in sentiment_distribution.items():
-                st.write(f"**{sentiment.capitalize()} Mentions**")
-                for insight in data.get("key_insights", []):
-                    st.write(f"  - {insight}")
-
-        else:
-            st.write("Sentiment distribution data is unavailable.")
+            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive_mentions', 'Data unavailable')}")
+            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative_mentions', 'Data unavailable')}")
+            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral_mentions', 'Data unavailable')}")
 
         st.write("**Notable Themes**")
-        notable_themes = report_data.get("notable_themes", [])
+        notable_themes = report_data.get("social_media_sentiment_analysis", {}).get("notable_themes", [])
         for theme in notable_themes:
             st.write(f"- **{theme.get('theme', 'Unnamed Theme')}**")
             st.write(f"  - Description: {theme.get('description', 'No description available')}")
-            if theme.get("hashtags"):
-                st.write(f"  - Hashtags: {', '.join(theme['hashtags'])}")
 
         st.write("**Conclusion**")
-        conclusion = report_data.get("conclusion", {})
-        st.write(f"- Summary: {conclusion.get('summary', 'No summary available')}")
-        st.write(f"- Polarized View: {conclusion.get('polarized_view', 'No implications available')}")
+        conclusion = report_data.get("social_media_sentiment_analysis", {}).get("overall_sentiment", {})
+        st.write(f"- Summary: {conclusion.get('description', 'No summary available')}")
+        st.write(f"- Areas for Improvement: {conclusion.get('areas_for_improvement', 'No implications available')}")
 
         st.write("**Recommendations**")
         recommendations = report_data.get("recommendations", [])
