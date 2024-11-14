@@ -12,6 +12,8 @@ from langchain_openai import ChatOpenAI
 import openai
 import matplotlib.pyplot as plt
 import json
+import nltk
+nltk.download('vader_lexicon')
 
 # Load environment variables from .env file
 load_dotenv()
@@ -207,6 +209,26 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
+from collections import Counter
+from sklearn.feature_extraction.text import CountVectorizer
+
+def extract_key_themes(mentions):
+    text_data = [post["text"] for platform_posts in mentions.values() for post in platform_posts]
+    # Vectorize words to find common themes
+    vectorizer = CountVectorizer(stop_words='english', max_features=10)
+    X = vectorizer.fit_transform(text_data)
+    word_counts = Counter(X.toarray().sum(axis=0))
+    themes = {word: {"description": f"High frequency mention of {word}"} for word, count in word_counts.items()}
+    return themes
+
+def generate_recommendations(themes):
+    recommendations = []
+    if "negative" in themes:
+        recommendations.append({"recommendation": "Address key topics generating negative sentiment to improve public perception."})
+    if "positive" in themes:
+        recommendations.append({"recommendation": "Continue engagement on positive themes to maintain favorable sentiment."})
+    return recommendations
+
 # Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
@@ -227,50 +249,30 @@ def display_formatted_report(brand_name, result):
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
-    if "sentiment analysis" in sentiment_output.lower():
-        st.write(sentiment_output)
-    else:
-        # Provide a simulated sentiment analysis summary if real data is not provided
-        st.write("The sentiment analysis shows a mix of positive, negative, and neutral sentiments:")
-        st.write("- Positive: 45%")
-        st.write("- Negative: 35%")
-        st.write("- Neutral: 20%")
+    mentions = extract_mentions_data(result)  # Extract mentions from result data if not directly available
+    sentiment_results = analyze_sentiment_by_platform(mentions)
+    display_sentiment_charts(sentiment_results)
 
     # Section 4: Key Themes and Recommendations
     st.subheader("4. Key Themes and Recommendations")
-    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
-    
-    # Try to parse JSON data from the report generator output
-    try:
-        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
-        
-        # Display themes
-        themes = report_data.get('notable_themes', {})
-        st.write("**Notable Themes:**")
-        if themes:
-            for theme_key, theme_info in themes.items():
-                description = theme_info.get('description', 'No description available')
-                st.write(f"- **{theme_key.replace('_', ' ').title()}**: {description}")
-        else:
-            # Placeholder themes for demonstration
-            st.write("- **Political Influence**: Strong engagement around Trump's political strategies.")
-            st.write("- **Controversial Statements**: High negative sentiment around recent controversial posts.")
+    themes = extract_key_themes(mentions)
+    recommendations = generate_recommendations(themes)
 
-        # Display recommendations
-        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
-        st.write("**Recommendations:**")
-        if recommendations:
-            for rec in recommendations:
-                st.write(f"- {rec.get('recommendation', 'No specific recommendation available')}")
-        else:
-            # Placeholder recommendations for demonstration
-            st.write("- Increase engagement on positive topics to counterbalance negative sentiment.")
-            st.write("- Monitor sentiment around specific policies to adjust messaging accordingly.")
+    # Display extracted themes
+    st.write("**Notable Themes:**")
+    if themes:
+        for theme, info in themes.items():
+            st.write(f"- **{theme}**: {info['description']}")
+    else:
+        st.write("No notable themes identified.")
 
-    except (json.JSONDecodeError, KeyError) as e:
-        st.write("Error parsing the JSON-formatted report.")
-        st.write(report_output)
+    # Display generated recommendations
+    st.write("**Recommendations:**")
+    if recommendations:
+        for rec in recommendations:
+            st.write(f"- {rec['recommendation']}")
+    else:
+        st.write("No specific recommendations provided.")
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
