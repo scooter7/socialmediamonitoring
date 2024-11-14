@@ -116,6 +116,10 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
+            # Verify if result is a dictionary, if not convert or handle appropriately
+            if not isinstance(result, dict):
+                st.write("Debug: Result type not dict; attempting conversion.")
+                result = result.dict() if hasattr(result, "dict") else json.loads(result.json())
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -132,8 +136,13 @@ def display_formatted_report(brand_name, result):
     st.write("---")
 
     # Display Debugging Data to Trace Output Structure
-    st.write("Debug: Result Keys")
-    st.write(list(result.keys()))
+    try:
+        st.write("Debug: Result Keys")
+        st.write(list(result.keys()))
+    except Exception as e:
+        st.error("Error accessing result keys.")
+        st.write(e)
+        return
 
     # Section 1: Research Findings
     research_key = "Research DMACC and summarize online presence and activities."
@@ -177,13 +186,17 @@ def display_formatted_report(brand_name, result):
     st.subheader("4. Key Themes Identified")
     themes_key = "Generate a JSON-formatted report for DMACC based on findings."
     if themes_key in result:
-        json_data = json.loads(result[themes_key]["raw_output"]).get("report", {}).get("themes_identified", [])
-        if json_data:
-            for theme in json_data:
-                st.write(f"**Theme**: {theme['theme']}")
-                st.write(f"Description: {theme['description']}")
-        else:
-            st.write("No themes identified.")
+        try:
+            json_data = json.loads(result[themes_key]["raw_output"]).get("report", {}).get("themes_identified", [])
+            if json_data:
+                for theme in json_data:
+                    st.write(f"**Theme**: {theme['theme']}")
+                    st.write(f"Description: {theme['description']}")
+            else:
+                st.write("No themes identified.")
+        except Exception as e:
+            st.error("Error parsing themes.")
+            st.write(e)
     else:
         st.write("No themes identified.")
 
@@ -191,12 +204,16 @@ def display_formatted_report(brand_name, result):
     st.subheader("5. Recommendations")
     recommendations_key = themes_key
     if recommendations_key in result:
-        recommendations = json.loads(result[recommendations_key]["raw_output"]).get("report", {}).get("recommendations", [])
-        if recommendations:
-            for recommendation in recommendations:
-                st.write(f"- **{recommendation}**")
-        else:
-            st.write("No recommendations available.")
+        try:
+            recommendations = json.loads(result[recommendations_key]["raw_output"]).get("report", {}).get("recommendations", [])
+            if recommendations:
+                for recommendation in recommendations:
+                    st.write(f"- **{recommendation}**")
+            else:
+                st.write("No recommendations available.")
+        except Exception as e:
+            st.error("Error parsing recommendations.")
+            st.write(e)
     else:
         st.write("No recommendations available.")
 
