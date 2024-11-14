@@ -171,12 +171,12 @@ def display_formatted_report(brand_name, result):
     else:
         st.write("No online mentions available.")
 
-    # Section 3: Sentiment Analysis
+    # Section 3: Sentiment Analysis (Concise Overview)
     st.subheader("3. Sentiment Analysis")
     sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
     st.write(sentiment_output)
 
-    # Section 4: Key Themes and Recommendations
+    # Section 4: Key Themes and Recommendations (Detailed Metrics)
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
 
@@ -188,13 +188,14 @@ def display_formatted_report(brand_name, result):
         # Access the 'report' section in the JSON data
         report = report_data.get("report", {})
 
-        # Sentiment Distribution
-        st.write("**Sentiment Distribution**")
+        # Detailed Sentiment Distribution (If metrics are provided separately from the summary)
         sentiment_analysis = report.get("sentiment_analysis", {})
-        st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
-        st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral_mentions', 'N/A')}")
-        st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
-        st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
+        if sentiment_analysis:
+            st.write("**Sentiment Distribution (Detailed Metrics)**")
+            st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
+            st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral_mentions', 'N/A')}")
+            st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
+            st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
 
         # Key Insights
         st.write("**Key Insights**")
