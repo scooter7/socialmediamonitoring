@@ -121,6 +121,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
             elif hasattr(result, "json_dict"):
                 output = result.json_dict
             
+            st.write("Debug: Raw Result Structure", output)  # Debugging output to show raw structure
             return output
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -135,32 +136,31 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 def display_report(brand_name, result):
     st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
 
+    # Check the structure of the result
+    st.write("Debug: Result Keys", result.keys())  # Debugging output to check keys
+
     # Research Findings
     if "Research Findings" in result:
         st.subheader("1. Research Findings")
-        st.write(result.get("Research Findings", "No research findings available."))
+        st.write(result.get("Research Findings", {}).get("raw_output", "No research findings available."))
 
     # Social Media Mentions
     if "Social Media Mentions" in result:
         st.subheader("2. Social Media Mentions")
-        for platform, mentions in result["Social Media Mentions"].items():
-            st.markdown(f"**{platform}**")
-            for mention in mentions:
-                st.markdown(f"- {mention}")
+        mentions = result.get("Social Media Mentions", {}).get("raw_output", "No social media mentions available.")
+        st.write(mentions)
 
     # Sentiment Analysis
     if "Sentiment Analysis" in result:
         st.subheader("3. Sentiment Analysis")
-        sentiment_data = result["Sentiment Analysis"]
-        for sentiment, count in sentiment_data.items():
-            st.markdown(f"**{sentiment.capitalize()} Mentions:** {count}")
+        sentiment_data = result.get("Sentiment Analysis", {}).get("raw_output", "No sentiment analysis available.")
+        st.write(sentiment_data)
 
     # Recommendations
     if "Recommendations" in result:
         st.subheader("4. Recommendations")
-        recommendations = result["Recommendations"]
-        for rec in recommendations:
-            st.markdown(f"- **{rec['recommendation']}**: {rec['rationale']}")
+        recommendations = result.get("Recommendations", {}).get("raw_output", "No recommendations available.")
+        st.write(recommendations)
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
