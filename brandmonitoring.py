@@ -240,12 +240,11 @@ brand_name = st.text_input("Enter the Brand or Topic Name")
 if st.button("Start Analysis"):
     if brand_name:
         st.write("Starting online monitoring and sentiment analysis...")
-        task_outputs = run_social_media_monitoring(brand_name)
+        result = run_social_media_monitoring(brand_name)
         
-        if task_outputs:
-            display_formatted_report(brand_name, task_outputs)
+        if result is not None and hasattr(result, "tasks_output"):
+            display_formatted_report(brand_name, result)
         else:
-            st.error("Failed to generate the report. Please try again.")
+            st.error("Failed to generate the report. The monitoring task did not return expected data.")
     else:
         st.error("Please enter a brand or topic name to proceed.")
-
