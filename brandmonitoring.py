@@ -160,12 +160,10 @@ def display_formatted_report(brand_name, result):
 
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
-    
-    # Debugging output to verify raw tool output data
     mentions_output = task_outputs[1].raw if task_outputs[1] else None
     if mentions_output:
         st.write("## Debug: Raw Mentions Output")
-        st.write(mentions_output)  # Display the raw output for debugging
+        st.write(mentions_output)  # Display raw output for debugging
 
     parsed_mentions = parse_tool_output(mentions_output) if mentions_output else []
     
@@ -190,40 +188,41 @@ def display_formatted_report(brand_name, result):
         report_output_cleaned = re.sub(r'```(?:json)?\n|\n```', '', report_output)
         report_data = json.loads(report_output_cleaned)
 
-        # Access the 'report' section in the JSON data
-        report = report_data.get("report", {})
+        # Check if 'report' is a dictionary and not a string
+        if isinstance(report_data, dict) and isinstance(report_data.get("report"), dict):
+            report = report_data["report"]
 
-        # Check if there's data in Key Insights or Recommendations
-        key_insights = report.get("key_insights", {})
-        recommendations = report.get("recommendations", [])
+            # Check if there's data in Key Insights or Recommendations
+            key_insights = report.get("key_insights", {})
+            recommendations = report.get("recommendations", [])
 
-        if key_insights or recommendations:
-            # Only display this section if either Key Insights or Recommendations are available
-            st.subheader("4. Key Themes and Recommendations")
+            if key_insights or recommendations:
+                # Only display this section if either Key Insights or Recommendations are available
+                st.subheader("4. Key Themes and Recommendations")
 
-            # Detailed Sentiment Distribution (If metrics are provided separately from the summary)
-            sentiment_analysis = report.get("sentiment_analysis", {})
-            if sentiment_analysis:
-                st.write("**Sentiment Distribution (Detailed Metrics)**")
-                st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
-                st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral_mentions', 'N/A')}")
-                st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
-                st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
+                # Detailed Sentiment Distribution (If metrics are provided separately from the summary)
+                sentiment_analysis = report.get("sentiment_analysis", {})
+                if isinstance(sentiment_analysis, dict):
+                    st.write("**Sentiment Distribution (Detailed Metrics)**")
+                    st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
+                    st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral_mentions', 'N/A')}")
+                    st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
+                    st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
 
-            # Display Key Insights only if available
-            if key_insights:
-                st.write("**Key Insights**")
-                for key, insight in key_insights.items():
-                    st.write(f"- **{key.replace('_', ' ').title()}**")
-                    st.write(f"  - Description: {insight.get('description', 'No description available')}")
-                    st.write(f"  - Feedback: {insight.get('feedback', 'No feedback available')}")
+                # Display Key Insights only if available
+                if isinstance(key_insights, dict) and key_insights:
+                    st.write("**Key Insights**")
+                    for key, insight in key_insights.items():
+                        st.write(f"- **{key.replace('_', ' ').title()}**")
+                        st.write(f"  - Description: {insight.get('description', 'No description available')}")
+                        st.write(f"  - Feedback: {insight.get('feedback', 'No feedback available')}")
 
-            # Display Recommendations only if available
-            if recommendations:
-                st.write("**Recommendations**")
-                for recommendation in recommendations:
-                    st.write(f"- **{recommendation.get('action', 'No action specified')}**")
-                    st.write(f"  - {recommendation.get('details', 'No additional details provided')}")
+                # Display Recommendations only if available
+                if isinstance(recommendations, list) and recommendations:
+                    st.write("**Recommendations**")
+                    for recommendation in recommendations:
+                        st.write(f"- **{recommendation.get('action', 'No action specified')}**")
+                        st.write(f"  - {recommendation.get('details', 'No additional details provided')}")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
