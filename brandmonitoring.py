@@ -83,7 +83,7 @@ def create_tasks(brand_name, agents):
         expected_output="Summary of mentions by platform."
     )
     sentiment_analysis_task = Task(
-        description=f"Analyze sentiment of social media mentions about {brand_name}.",
+        description=f"Analyze sentiment of the social media mentions about {brand_name}.",
         agent=agents[2],
         expected_output="Sentiment breakdown and themes."
     )
@@ -159,9 +159,15 @@ def create_visualizations(mentions_data, sentiment_data):
 # Display formatted report
 def display_report(brand_name, result):
     st.header(f"Report for {brand_name}")
+
+    # Debugging: Show the raw structure of the result
+    st.write("Debug: Raw Result Structure")
+    st.json(result)  # Displaying the full JSON structure for inspection
+
+    # Display each section if data is available
     if "Research Findings" in result:
         st.subheader("Research Findings")
-        st.write(result["Research Findings"])
+        st.write(result.get("Research Findings", "No research findings available."))
 
     if "Social Media Mentions" in result:
         st.subheader("Social Media Mentions")
@@ -179,7 +185,7 @@ def display_report(brand_name, result):
 
     if "Recommendations" in result:
         st.subheader("Recommendations")
-        st.write(result["Recommendations"])
+        st.write(result.get("Recommendations", "No recommendations available."))
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
