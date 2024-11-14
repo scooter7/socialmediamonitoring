@@ -126,43 +126,12 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Function to parse and display CrewAI data in a readable format
-def parse_and_display_raw_data(report_output):
+# Function to parse and display online mentions data in a structured format
+def parse_and_display_mentions(report_output):
     try:
-        # Parse JSON and retrieve main sections
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         
-        # Extract and display sentiment if available
-        sentiment_data = report_data.get('report', {}).get('sentiment_analysis', {})
-
-        st.write("### Positive Sentiment")
-        pos_sentiment = sentiment_data.get('positive_sentiment', {})
-        if pos_sentiment:
-            st.write(f"**Percentage:** {pos_sentiment.get('percentage', 'No Data')}%")
-            st.write(f"**Examples:** {', '.join(pos_sentiment.get('examples', []))}")
-            st.write(f"**Themes:** {', '.join(pos_sentiment.get('themes', []))}")
-        else:
-            st.write("No positive sentiment data available.")
-
-        st.write("### Negative Sentiment")
-        neg_sentiment = sentiment_data.get('negative_sentiment', {})
-        if neg_sentiment:
-            st.write(f"**Percentage:** {neg_sentiment.get('percentage', 'No Data')}%")
-            st.write(f"**Examples:** {', '.join(neg_sentiment.get('examples', []))}")
-            st.write(f"**Themes:** {', '.join(neg_sentiment.get('themes', []))}")
-        else:
-            st.write("No negative sentiment data available.")
-
-        st.write("### Neutral Sentiment")
-        neu_sentiment = sentiment_data.get('neutral_sentiment', {})
-        if neu_sentiment:
-            st.write(f"**Percentage:** {neu_sentiment.get('percentage', 'No Data')}%")
-            st.write(f"**Examples:** {', '.join(neu_sentiment.get('examples', []))}")
-            st.write(f"**Themes:** {', '.join(neu_sentiment.get('themes', []))}")
-        else:
-            st.write("No neutral sentiment data available.")
-        
-        # Extract and display online mentions in a structured way
+        # Extract and display online mentions if available
         mentions_data = report_data.get('mentions', [])
         if mentions_data:
             st.write("### Online Mentions")
@@ -197,7 +166,7 @@ def display_formatted_report(brand_name, result):
     st.subheader("2. Online Mentions and Sentiment Analysis")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
     if report_output:
-        parse_and_display_raw_data(report_output)
+        parse_and_display_mentions(report_output)
     else:
         st.write("No online mentions or sentiment data available.")
 
