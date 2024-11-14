@@ -132,15 +132,17 @@ def parse_and_display_raw_data(report_output):
         # Parse JSON and retrieve main sections
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         
-        # Extract sentiment and display if available
+        # Extract and display sentiment if available
         sentiment_data = report_data.get('report', {}).get('sentiment_analysis', {})
-        
+
         st.write("### Positive Sentiment")
         pos_sentiment = sentiment_data.get('positive_sentiment', {})
         if pos_sentiment:
             st.write(f"**Percentage:** {pos_sentiment.get('percentage', 'No Data')}%")
             st.write(f"**Examples:** {', '.join(pos_sentiment.get('examples', []))}")
             st.write(f"**Themes:** {', '.join(pos_sentiment.get('themes', []))}")
+        else:
+            st.write("No positive sentiment data available.")
 
         st.write("### Negative Sentiment")
         neg_sentiment = sentiment_data.get('negative_sentiment', {})
@@ -148,6 +150,8 @@ def parse_and_display_raw_data(report_output):
             st.write(f"**Percentage:** {neg_sentiment.get('percentage', 'No Data')}%")
             st.write(f"**Examples:** {', '.join(neg_sentiment.get('examples', []))}")
             st.write(f"**Themes:** {', '.join(neg_sentiment.get('themes', []))}")
+        else:
+            st.write("No negative sentiment data available.")
 
         st.write("### Neutral Sentiment")
         neu_sentiment = sentiment_data.get('neutral_sentiment', {})
@@ -155,6 +159,8 @@ def parse_and_display_raw_data(report_output):
             st.write(f"**Percentage:** {neu_sentiment.get('percentage', 'No Data')}%")
             st.write(f"**Examples:** {', '.join(neu_sentiment.get('examples', []))}")
             st.write(f"**Themes:** {', '.join(neu_sentiment.get('themes', []))}")
+        else:
+            st.write("No neutral sentiment data available.")
         
         # Extract and display online mentions in a structured way
         mentions_data = report_data.get('mentions', [])
