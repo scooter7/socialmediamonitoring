@@ -99,13 +99,13 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-            st.write("Debug: Raw result from Crew:", result)  # Debugging line to inspect raw result
+            st.write("Debug: Raw result from Crew:", result.raw)  # Debugging line to inspect raw result
             
-            # Remove ```json and ``` from the result string
+            # Remove backticks and parse JSON
             cleaned_result = result.raw.replace("```json", "").replace("```", "").strip()
+            report_data = json.loads(cleaned_result)
             
-            # Attempt to parse JSON
-            return json.loads(cleaned_result)
+            return report_data
         except json.JSONDecodeError as e:
             st.error(f"JSON decoding error: {e}")
             st.write("Debug: Cleaned JSON string:", cleaned_result)
@@ -130,13 +130,40 @@ def display_mentions(mentions_data):
 # Function to parse and display the report content
 def parse_and_display_report(report_output):
     try:
-        # Directly use the parsed JSON data
-        report_data = report_output
-
-        # Display Online Mentions and Sentiment Analysis
         st.subheader("2. Online Mentions and Sentiment Analysis")
-        mentions_data = report_data.get("tool_outputs", [])
-        display_mentions(mentions_data)
+        
+        if "report" in report_output:
+            report = report_output["report"]
+
+            # Display Sentiment Distribution if available
+            sentiment_data = report.get("sentiment_distribution", {})
+            if sentiment_data:
+                st.write("### Sentiment Distribution")
+                for sentiment, details in sentiment_data.items():
+                    percentage = details.get("percentage", "N/A")
+                    description = details.get("description", "No description available")
+                    st.write(f"**{sentiment.capitalize()} Mentions ({percentage}%):** {description}")
+                st.write("---")
+
+            # Display Notable Themes if available
+            notable_themes = report.get("notable_themes", [])
+            if notable_themes:
+                st.write("### Notable Themes")
+                for theme in notable_themes:
+                    st.write(f"**{theme['theme']}:** {theme['description']}")
+                st.write("---")
+                
+            # Display Recommendations if available
+            recommendations = report.get("recommendations", [])
+            if recommendations:
+                st.subheader("3. Recommendations")
+                for recommendation in recommendations:
+                    st.write(f"**{recommendation['action']}:** {recommendation['description']}")
+                st.write("---")
+
+        else:
+            st.write("No structured report data available.")
+
     except Exception as e:
         st.error(f"Error displaying report: {e}")
 
@@ -150,10 +177,6 @@ def display_formatted_report(brand_name, report_output):
 
     # 2. Online Mentions and Sentiment Analysis
     parse_and_display_report(report_output)
-
-    st.subheader("3. Recommendations")
-    recommendations = report_output.get("DMACC_Report", {}).get("Recommendations", "No recommendations available.")
-    st.write(recommendations)
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
