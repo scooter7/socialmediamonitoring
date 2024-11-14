@@ -141,32 +141,29 @@ def display_formatted_report(brand_name, result):
 
     # Section 1: Research Findings
     st.subheader("1. Research Findings")
-    research_output = task_outputs[0].summary if task_outputs[0] else "No data available"
+    research_output = task_outputs[0].summary if task_outputs[0] else "No research data available."
     st.write(research_output)
 
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
-    mentions_output = task_outputs[1].summary if task_outputs[1] else "No mentions data available"
+    mentions_output = task_outputs[1].summary if task_outputs[1] else "No online mentions data available."
     st.write(mentions_output)
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    sentiment_output = task_outputs[2].summary if task_outputs[2] else "No sentiment data available"
+    sentiment_output = task_outputs[2].summary if task_outputs[2] else "No sentiment data available."
     st.write(sentiment_output)
 
     # Section 4: Key Themes and Recommendations
     st.subheader("4. Key Themes and Recommendations")
-    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
+    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available."
 
     try:
-        # Validate JSON format before parsing
-        if report_output.startswith("```json"):
-            report_output = report_output.strip("```json\n").strip("\n```")
-
-        # Parse the JSON content
+        # Remove JSON formatting markers if present
+        report_output = report_output.strip("```json\n").strip("\n```")
         report_data = json.loads(report_output).get("report", {})
 
-        # Display structured report sections
+        # Sentiment Distribution
         st.write("### Sentiment Distribution")
         sentiment_distribution = report_data.get("sentiment_distribution", {})
         for sentiment, details in sentiment_distribution.items():
@@ -176,23 +173,35 @@ def display_formatted_report(brand_name, result):
             for insight in details.get("insights", []):
                 st.write(f"  - {insight}")
 
-        # Display Notable Themes
+        # Notable Themes
         st.write("### Notable Themes")
         notable_themes = report_data.get("notable_themes", [])
-        for theme in notable_themes:
-            st.write(f"- **{theme.get('theme', 'Unknown Theme')}**: {theme.get('description', 'No description available')}")
+        if notable_themes:
+            for theme in notable_themes:
+                st.write(f"- **{theme.get('theme', 'Unnamed Theme')}**: {theme.get('description', 'No description available')}")
+        else:
+            st.write("No notable themes available.")
 
-        # Display Notable Posts
+        # Notable Posts
         st.write("### Notable Posts")
         notable_posts = report_data.get("notable_posts", [])
-        for post in notable_posts:
-            st.write(f"- **[{post.get('title', 'No Title')}]({post.get('link', '#')})**: {post.get('snippet', 'No snippet available')}")
+        if notable_posts:
+            for post in notable_posts:
+                title = post.get('title', 'No Title')
+                link = post.get('link', '#')
+                snippet = post.get('snippet', 'No snippet available')
+                st.write(f"- **[{title}]({link})**: {snippet}")
+        else:
+            st.write("No notable posts available.")
 
-        # Display Recommendations
+        # Recommendations
         st.write("### Recommendations")
         recommendations = report_data.get("recommendations", [])
-        for rec in recommendations:
-            st.write(f"- {rec}")
+        if recommendations:
+            for rec in recommendations:
+                st.write(f"- {rec}")
+        else:
+            st.write("No recommendations available.")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please ensure the data format is correct.")
