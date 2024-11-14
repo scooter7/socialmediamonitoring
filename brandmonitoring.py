@@ -34,16 +34,14 @@ def fetch_mentions(brand_name):
     for source in sources:
         try:
             result = search_tool.search(brand_name)
-            # mentions[source] will now store parsed mentions directly
             mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
-            mentions[source] = []  # Store an empty list if an error occurs
+            mentions[source] = []
     return mentions
 
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
-    # Adjust regex to capture mentions if the format has changed
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
     return parsed_results
@@ -136,16 +134,8 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 
     for attempt in range(max_retries):
         try:
-            # Attempt to kickoff the crew process
             result = crew.kickoff()
-            
-            # Verify if the result has tasks_output and is not None or empty
-            if result and hasattr(result, "tasks_output") and result.tasks_output:
-                st.write("Crew kickoff successful. Retrieved tasks output.")
-                return result  # Returning the entire result object for later processing
-            else:
-                st.warning(f"Attempt {attempt + 1}: No tasks output found in result.")
-        
+            return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
@@ -155,19 +145,12 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-    st.error("All attempts failed to retrieve valid tasks output.")
-    return None
-
 # Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
-    # Verify result and retrieve task outputs
-    if not result or not hasattr(result, "tasks_output") or not result.tasks_output:
-        st.error("No task outputs available in result.")
-        return
-
+    # Extract task outputs
     task_outputs = result.tasks_output
 
     # Section 1: Research Findings
@@ -198,50 +181,41 @@ def display_formatted_report(brand_name, result):
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
 
     try:
-        # Clean and parse JSON output
-        report_output_cleaned = re.sub(r'```json|```|\n', '', report_output).strip()
+        # Clean JSON output by removing backticks and extra formatting
+        report_output_cleaned = re.sub(r'```(?:json)?\n|\n```', '', report_output)
         report_data = json.loads(report_output_cleaned)
-        st.write("Successfully parsed JSON.")
 
-        # Extract and display structured information
+        # Display structured information
         st.write("**Sentiment Distribution**")
-        sentiment_distribution = report_data.get("sentiment_analysis", {}).get("sentiment_distribution", {})
-        st.write(f"- Positive Mentions: {sentiment_distribution.get('positive_mentions', {}).get('percentage', 'N/A')}%")
-        st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral_mentions', {}).get('percentage', 'N/A')}%")
-        st.write(f"- Negative Mentions: {sentiment_distribution.get('negative_mentions', {}).get('percentage', 'N/A')}%")
+        sentiment_distribution = report_data["sentiment_analysis"]["sentiment_distribution"]
+        st.write(f"- Positive Mentions: {sentiment_distribution['positive_mentions']['percentage']}%")
+        st.write(f"- Neutral Mentions: {sentiment_distribution['neutral_mentions']['percentage']}%")
+        st.write(f"- Negative Mentions: {sentiment_distribution['negative_mentions']['percentage']}%")
 
-        # Display Key Insights if available
         st.write("**Key Insights**")
         for sentiment_type, insights in sentiment_distribution.items():
-            if 'key_insights' in insights:
-                st.write(f"- **{sentiment_type.capitalize()}**: Key Insights")
-                for insight in insights["key_insights"]:
-                    st.write(f"  - {insight}")
+            st.write(f"- **{sentiment_type.capitalize()}**: Key Insights")
+            for insight in insights.get("key_insights", []):
+                st.write(f"  - {insight}")
 
-        # Display Notable Themes if available
         st.write("**Notable Themes**")
-        notable_themes = report_data.get("sentiment_analysis", {}).get("notable_themes", {})
-        for theme_name, theme_details in notable_themes.items():
+        for theme_name, theme_details in report_data["sentiment_analysis"]["notable_themes"].items():
             st.write(f"- **{theme_name.replace('_', ' ').title()}**")
-            st.write(f"  - Description: {theme_details.get('description', 'No description available')}")
+            st.write(f"  - Description: {theme_details['description']}")
             st.write(f"  - Hashtags: {', '.join(theme_details.get('hashtags', []))}")
-            st.write(f"  - Impact: {theme_details.get('impact', 'N/A')}")
-            st.write(f"  - Concerns: {', '.join(theme_details.get('concerns', []))}")
-            st.write(f"  - Recommendation: {theme_details.get('recommendation', 'No recommendation available')}")
+            st.write(f"  - Impact: {theme_details.get('impact', '')}")
+            st.write(f"  - Concerns: {', '.join(theme_details.get('concerns', [])) if 'concerns' in theme_details else ''}")
+            st.write(f"  - Recommendation: {theme_details.get('recommendation', '')}")
 
-        # Display Conclusion if available
         st.write("**Conclusion**")
-        conclusion = report_data.get("conclusion", {})
-        st.write(f"- Overall Sentiment: {conclusion.get('overall_sentiment', 'N/A')}")
-        st.write(f"- Strengths: {', '.join(conclusion.get('strengths', []))}")
-        st.write(f"- Areas for Improvement: {', '.join(conclusion.get('areas_for_improvement', []))}")
-        st.write(f"- Strategic Recommendation: {conclusion.get('strategic_recommendation', 'No recommendation available')}")
-
-    except json.JSONDecodeError as e:
-        st.error(f"Error parsing JSON: {e}")
-
-    except (KeyError, AttributeError) as e:
-        st.error("Parsed JSON does not contain the expected data structure. Please check the JSON format.")
+        conclusion = report_data["conclusion"]
+        st.write(f"- Overall Sentiment: {conclusion['overall_sentiment']}")
+        st.write(f"- Strengths: {', '.join(conclusion['strengths'])}")
+        st.write(f"- Areas for Improvement: {', '.join(conclusion['areas_for_improvement'])}")
+        st.write(f"- Strategic Recommendation: {conclusion['strategic_recommendation']}")
+        
+    except (json.JSONDecodeError, KeyError, AttributeError) as e:
+        st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
@@ -256,9 +230,9 @@ if st.button("Start Analysis"):
         st.write("Starting online monitoring and sentiment analysis...")
         result = run_social_media_monitoring(brand_name)
         
-        if result is not None and hasattr(result, "tasks_output"):
+        if result:
             display_formatted_report(brand_name, result)
         else:
-            st.error("Failed to generate the report. The monitoring task did not return expected data.")
+            st.error("Failed to generate the report. Please try again.")
     else:
         st.error("Please enter a brand or topic name to proceed.")
