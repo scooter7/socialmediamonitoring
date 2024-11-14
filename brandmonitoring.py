@@ -179,77 +179,60 @@ def display_formatted_report(brand_name, task_outputs):
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs and len(task_outputs) > 3 else "No report data available"
 
-    # Display raw output for debugging
-    st.write("**Raw Report Output**", report_output)
-
+    # Clean the JSON output and attempt parsing
+    report_output_cleaned = re.sub(r'```json|```|\n', '', report_output).strip()
+    
     try:
-        # Remove backticks and code block markers
-        report_output_cleaned = re.sub(r'```json|```', '', report_output).strip()
-
-        # Parse the JSON data
         report_data = json.loads(report_output_cleaned)
         st.write("Successfully parsed JSON.")
 
-        # Access the top-level key (e.g., "USC_Aiken_Sentiment_Report")
-        top_level_key = next(iter(report_data))
-        report_content = report_data[top_level_key]
+        # Display parsed JSON data
+        if 'USC_Aiken_Sentiment_Report' in report_data:
+            sentiment_report = report_data["USC_Aiken_Sentiment_Report"]
 
-        # Display Sentiment Distribution
-        st.write("**Sentiment Distribution**")
-        overview = report_content.get("Overview", {})
-        sentiment_distribution = overview.get("Sentiment_Distribution", {})
-        if sentiment_distribution:
-            st.write(f"- Positive Mentions: {sentiment_distribution.get('Positive_Mentions', 'Data unavailable')}")
-            st.write(f"- Negative Mentions: {sentiment_distribution.get('Negative_Mentions', 'Data unavailable')}")
-            st.write(f"- Neutral Mentions: {sentiment_distribution.get('Neutral_Mentions', 'Data unavailable')}")
-        else:
-            st.write("Sentiment distribution data is unavailable.")
+            # Sentiment Distribution
+            st.write("**Sentiment Distribution**")
+            distribution = sentiment_report.get("Overview", {}).get("Sentiment_Distribution", {})
+            st.write(f"- Positive Mentions: {distribution.get('Positive_Mentions', 'N/A')}%")
+            st.write(f"- Negative Mentions: {distribution.get('Negative_Mentions', 'N/A')}%")
+            st.write(f"- Neutral Mentions: {distribution.get('Neutral_Mentions', 'N/A')}%")
 
-        # Display Key Insights
-        st.write("**Key Insights**")
-        key_insights = report_content.get("Key_Insights", {})
-        for sentiment_type, insights in key_insights.items():
-            st.write(f"**{sentiment_type.replace('_', ' ').title()}**")
-            if isinstance(insights, dict):
-                for theme_key, theme_value in insights.items():
-                    if isinstance(theme_value, dict):
-                        st.write(f"- **{theme_key.replace('_', ' ').title()}**")
-                        st.write(f"  - Description: {theme_value.get('Description', 'No description available')}")
-                        st.write(f"  - Feedback: {theme_value.get('Feedback', 'No feedback available')}")
-            else:
-                st.write(f"- {insights}")
+            # Key Insights
+            st.write("**Key Insights**")
+            key_insights = sentiment_report.get("Key_Insights", {})
+            for sentiment_type, details in key_insights.items():
+                st.write(f"- **{sentiment_type.replace('_', ' ')}**")
+                for theme, content in details.items():
+                    st.write(f"  - {theme.replace('_', ' ')}: {content['Description']}")
+                    st.write(f"    - Feedback: {content.get('Feedback', 'No feedback available')}")
 
-        # Display Notable Themes
-        st.write("**Notable Themes**")
-        notable_themes = report_content.get("Key_Insights", {}).get("notable_themes", [])
-        if not notable_themes:
-            notable_themes = report_content.get("notable_themes", [])
-        for theme in notable_themes:
-            st.write(f"- **{theme.get('theme', 'Unnamed Theme')}**")
-            st.write(f"  - Description: {theme.get('description', 'No description available')}")
+            # Notable Themes
+            st.write("**Notable Themes**")
+            notable_themes = sentiment_report.get("notable_themes", [])
+            for theme in notable_themes:
+                st.write(f"- **{theme.get('theme', 'Unnamed Theme')}**")
+                st.write(f"  - Description: {theme.get('description', 'No description available')}")
 
-        # Display Conclusion
-        st.write("**Conclusion**")
-        conclusion = report_content.get("Conclusion", "No conclusion available")
-        if isinstance(conclusion, dict):
+            # Conclusion
+            st.write("**Conclusion**")
+            conclusion = sentiment_report.get("Conclusion", {})
             st.write(f"- Summary: {conclusion.get('summary', 'No summary available')}")
             st.write(f"- Areas for Improvement: {conclusion.get('areas_for_improvement', 'No implications available')}")
-        else:
-            st.write(f"- {conclusion}")
 
-        # Display Recommendations
-        st.write("**Recommendations**")
-        recommendations = report_content.get("Recommendations", {})
-        if recommendations:
-            for rec_key, rec_value in recommendations.items():
-                st.write(f"- **{rec_key.replace('_', ' ').title()}**: {rec_value.get('Action', 'No action specified')}")
+            # Recommendations
+            st.write("**Recommendations**")
+            recommendations = sentiment_report.get("Recommendations", {})
+            for recommendation, details in recommendations.items():
+                st.write(f"- {recommendation.replace('_', ' ')}: {details.get('Action', 'No action specified')}")
+
         else:
-            st.write("No recommendations available.")
+            st.error("Parsed JSON does not contain expected report data structure.")
 
     except json.JSONDecodeError as e:
-        st.error(f"Error parsing the JSON-formatted report: {e}")
+        st.error(f"Error parsing JSON: {e}")
+
     except Exception as e:
-        st.error(f"Unexpected error: {e}")
+        st.error(f"Unexpected error during report generation: {e}")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
