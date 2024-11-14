@@ -162,7 +162,7 @@ def display_formatted_report(brand_name, result):
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
 
-    # Display raw mentions as they appear in the logs
+    # Display the tool output verbatim as it appears in the logs
     if mentions_output:
         st.write("## Tool Output:")
         st.write(mentions_output)
@@ -174,7 +174,9 @@ def display_formatted_report(brand_name, result):
     sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
     st.write(sentiment_output)
 
-    # Section 4: Key Themes and Recommendations (only if data is available)
+    # Section 4: Key Themes and Recommendations
+    st.subheader("4. Key Themes and Recommendations")
+
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
     try:
         # Clean JSON output and parse it
@@ -185,36 +187,34 @@ def display_formatted_report(brand_name, result):
         report = report_data.get("report", {})
 
         # Check if there's data in Key Insights or Recommendations
-        key_insights = report.get("key_insights", {})
-        recommendations = report.get("recommendations", [])
+        key_insights = report.get("key_insights", [])
+        recommendations = report_data.get("recommendations", [])
 
         if key_insights or recommendations:
             # Only display this section if either Key Insights or Recommendations are available
             st.subheader("4. Key Themes and Recommendations")
 
             # Detailed Sentiment Distribution (If metrics are provided separately from the summary)
-            sentiment_analysis = report.get("sentiment_analysis", {})
+            sentiment_analysis = report.get("sentiment_distribution", {})
             if sentiment_analysis:
                 st.write("**Sentiment Distribution (Detailed Metrics)**")
-                st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
-                st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral_mentions', 'N/A')}")
-                st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
-                st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
+                st.write(f"- Positive Mentions: {sentiment_analysis.get('positive', 'N/A')}")
+                st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral', 'N/A')}")
+                st.write(f"- Negative Mentions: {sentiment_analysis.get('negative', 'N/A')}")
 
             # Display Key Insights only if available
             if key_insights:
                 st.write("**Key Insights**")
-                for key, insight in key_insights.items():
-                    st.write(f"- **{key.replace('_', ' ').title()}**")
-                    st.write(f"  - Description: {insight.get('description', 'No description available')}")
-                    st.write(f"  - Feedback: {insight.get('feedback', 'No feedback available')}")
+                for insight in key_insights:
+                    st.write(f"- **{insight.get('theme', 'Unknown Theme')}**")
+                    st.write(f"  - Insight: {insight.get('insight', 'No insight available')}")
 
             # Display Recommendations only if available
             if recommendations:
                 st.write("**Recommendations**")
                 for recommendation in recommendations:
-                    st.write(f"- **{recommendation.get('action', 'No action specified')}**")
-                    st.write(f"  - {recommendation.get('details', 'No additional details provided')}")
+                    st.write(f"- **{recommendation.get('recommendation', 'No recommendation specified')}**")
+                    st.write(f"  - Action: {recommendation.get('action', 'No additional details provided')}")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
