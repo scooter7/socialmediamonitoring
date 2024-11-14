@@ -32,7 +32,7 @@ def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
         goal=f"Research and gather information about {brand_name} from various sources",
-        backstory="You are an expert researcher adept at finding relevant information.",
+        backstory="Expert researcher adept at finding relevant information.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -42,7 +42,7 @@ def create_agents(brand_name, llm):
     social_media_monitor = Agent(
         role="Social Media Monitor",
         goal=f"Monitor social media platforms for mentions of {brand_name}",
-        backstory="You specialize in monitoring social media and detecting trends.",
+        backstory="Specializes in monitoring social media and detecting trends.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -90,7 +90,7 @@ def create_tasks(brand_name, agents):
         description=f"Generate a comprehensive report about {brand_name}.",
         agent=agents[3],
         expected_output="Detailed report including insights and recommendations.",
-        output_json=True  # Ensuring JSON format for the final output
+        output_format="json"  # Ensure JSON format output
     )
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
@@ -108,7 +108,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 
     for attempt in range(max_retries):
         try:
-            result = crew.kickoff().json()  # Get the JSON output directly
+            result = crew.kickoff().json()  # Retrieve the JSON output
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
