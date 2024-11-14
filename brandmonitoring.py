@@ -152,7 +152,6 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display formatted report based on task outputs
-# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -188,50 +187,41 @@ def display_formatted_report(brand_name, result):
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
 
     try:
-        # Parse JSON-formatted report
-        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))["report"]
+        # Parse JSON-formatted report with the correct key extraction
+        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))["UniversityOfIowaReport"]
 
-        # Sentiment Distribution
+        # Display Sentiment Distribution
         st.write("**Sentiment Distribution**")
-        distribution = report_data.get("sentiment_analysis", {}).get("overall_sentiment_distribution", {})
-        st.write(f"- Positive Mentions: {distribution.get('positive_mentions', 'N/A')}%")
-        st.write(f"- Neutral Mentions: {distribution.get('neutral_mentions', 'N/A')}%")
-        st.write(f"- Negative Mentions: {distribution.get('negative_mentions', 'N/A')}%")
+        distribution = report_data.get("sentimentDistribution", {})
+        st.write(f"- Positive Mentions: {distribution.get('positiveMentions', 'N/A')}%")
+        st.write(f"- Neutral Mentions: {distribution.get('neutralMentions', 'N/A')}%")
+        st.write(f"- Negative Mentions: {distribution.get('negativeMentions', 'N/A')}%")
 
-        # Notable Themes
+        # Display Notable Themes
         st.write("**Notable Themes**")
-        notable_themes = report_data.get("sentiment_analysis", {}).get("notable_themes", [])
+        notable_themes = report_data.get("notableThemes", [])
         for theme in notable_themes:
-            st.write(f"- **{theme['theme']}**: {theme['description']}")
-            example_comments = theme.get("example_comments", [])
-            if example_comments:
-                st.write("  - Example Comments: " + "; ".join(example_comments))
+            st.write(f"- **{theme['theme']}**: {theme['insight']}")
+            st.write(f"  - Impact: {theme['impact']}")
 
-        # Negative and Neutral Mentions
-        negative_mentions = report_data.get("sentiment_analysis", {}).get("negative_mentions", {})
-        st.write("**Negative Mentions**")
-        st.write(negative_mentions.get("description", "No negative mentions available."))
-        st.write("  - Example Comments: " + "; ".join(negative_mentions.get("example_comments", [])))
-
-        neutral_mentions = report_data.get("sentiment_analysis", {}).get("neutral_mentions", {})
-        st.write("**Neutral Mentions**")
-        st.write(neutral_mentions.get("description", "No neutral mentions available."))
-
-        # Conclusion and Recommendations
-        st.write("**Conclusion**")
+        # Display Conclusion
         conclusion = report_data.get("conclusion", {})
-        st.write(conclusion.get("summary", "No summary available."))
+        st.write("**Conclusion**")
+        st.write(conclusion.get("overallSentiment", "No overall sentiment available."))
+        st.write("**Key Factors**")
+        for factor in conclusion.get("keyFactors", []):
+            st.write(f"- {factor}")
+        st.write("**Reputation Impact**")
+        st.write(conclusion.get("reputationImpact", "No reputation impact information available."))
 
-        st.write("**Key Insights**")
-        for insight in conclusion.get("key_insights", []):
-            st.write(f"- {insight}")
-
+        # Display Recommendations
         st.write("**Recommendations**")
-        for rec in conclusion.get("recommendations", []):
-            st.write(f"- {rec}")
+        recommendations = report_data.get("recommendations", [])
+        for rec in recommendations:
+            st.write(f"- {rec['suggestion']}: {rec['rationale']}")
 
     except (json.JSONDecodeError, KeyError, AttributeError):
-        st.error("Error parsing the JSON-formatted report.")
+        st.error("Error parsing the JSON-formatted report. Please ensure the data format is correct.")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
