@@ -268,8 +268,8 @@ st.write("Analyze a brand or topic with integrated online monitoring, sentiment 
 # User input for brand or topic with a unique key
 brand_name = st.text_input("Enter the Brand or Topic Name", key="brand_name_input")
 
-# Run the analysis on button click
-if st.button("Start Analysis"):
+# Run the analysis on button click with a unique key for the button
+if st.button("Start Analysis", key="start_analysis_button"):
     if brand_name:
         st.write("Starting online monitoring and sentiment analysis...")
         result = run_social_media_monitoring(brand_name)
@@ -280,4 +280,5 @@ if st.button("Start Analysis"):
             st.error("Failed to generate the report. Please try again.")
     else:
         st.error("Please enter a brand or topic name to proceed.")
+
 
