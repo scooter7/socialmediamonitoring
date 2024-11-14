@@ -43,7 +43,7 @@ def fetch_mentions(brand_name):
         try:
             # Attempt to fetch mentions for each platform
             result = search_tool.run(brand_name)
-            mentions[source] = result or []  # Assign an empty list if result is None or empty
+            mentions[source] = parse_tool_output(result) or []  # Parse the output and assign empty if None
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
             mentions[source] = []  # Store an empty list if an error occurs
@@ -56,43 +56,46 @@ def parse_tool_output(tool_output):
     return parsed_results
 
 # Display mentions in readable format
-def display_mentions(parsed_results):
+def display_mentions(mentions):
     st.subheader("2. Social Media Mentions")
-    if parsed_results:
-        for entry in parsed_results:
-            st.markdown(f"**{entry['title']}**")
-            st.markdown(f"[Read more]({entry['link']})")
-            st.write(entry['snippet'])
-            st.write("---")
-    else:
-        st.write("No mentions data available.")
+    for platform, entries in mentions.items():
+        st.markdown(f"### {platform}")
+        if entries:
+            for entry in entries:
+                st.markdown(f"**{entry['title']}**")
+                st.markdown(f"[Read more]({entry['link']})")
+                st.write(entry['snippet'])
+                st.write("---")
+        else:
+            st.write(f"No mentions data available for {platform}.")
 
 # Analyze sentiment by platform
-def analyze_sentiment_by_platform(parsed_results):
-    platform_sentiments = {"positive": 0, "negative": 0, "neutral": 0}
-    
-    for entry in parsed_results:
-        snippet = entry["snippet"]
-        sentiment_score = sentiment_analyzer.polarity_scores(snippet)
-        if sentiment_score["compound"] >= 0.05:
-            platform_sentiments["positive"] += 1
-        elif sentiment_score["compound"] <= -0.05:
-            platform_sentiments["negative"] += 1
-        else:
-            platform_sentiments["neutral"] += 1
-
-    return platform_sentiments
+def analyze_sentiment_by_platform(mentions):
+    sentiment_results = {}
+    for platform, posts in mentions.items():
+        platform_sentiments = {"positive": 0, "negative": 0, "neutral": 0}
+        for post in posts:
+            snippet = post["snippet"]
+            sentiment_score = sentiment_analyzer.polarity_scores(snippet)
+            if sentiment_score["compound"] >= 0.05:
+                platform_sentiments["positive"] += 1
+            elif sentiment_score["compound"] <= -0.05:
+                platform_sentiments["negative"] += 1
+            else:
+                platform_sentiments["neutral"] += 1
+        sentiment_results[platform] = platform_sentiments
+    return sentiment_results
 
 # Display sentiment charts per platform
 def display_sentiment_charts(sentiment_results):
     for platform, sentiments in sentiment_results.items():
-        st.subheader(f"Sentiment Distribution")
+        st.subheader(f"Sentiment Distribution on {platform}")
         labels = ['Positive', 'Negative', 'Neutral']
-        sizes = [sentiments.get("positive", 0), sentiments.get("negative", 0), sentiments.get("neutral", 0)]
+        sizes = [sentiments["positive"], sentiments["negative"], sentiments["neutral"]]
 
         total_mentions = sum(sizes)
         if total_mentions == 0:
-            st.write(f"No sentiment data available.")
+            st.write(f"No sentiment data available for {platform}.")
             continue
 
         fig, ax = plt.subplots()
@@ -101,8 +104,8 @@ def display_sentiment_charts(sentiment_results):
         st.pyplot(fig)
 
 # Extract key themes from mentions
-def extract_key_themes(parsed_results):
-    text_data = [entry["snippet"] for entry in parsed_results]
+def extract_key_themes(mentions):
+    text_data = [entry["snippet"] for platform_entries in mentions.values() for entry in platform_entries]
     
     if not text_data:
         st.warning("No text data available in mentions to extract themes.")
@@ -125,7 +128,7 @@ def generate_recommendations(themes):
     return recommendations
 
 # Display formatted report
-def display_formatted_report(brand_name, parsed_results):
+def display_formatted_report(brand_name, mentions):
     st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
@@ -134,16 +137,16 @@ def display_formatted_report(brand_name, parsed_results):
     st.write(f"Fetched data for {brand_name}. Here’s an overview of their recent activities and online presence:")
 
     # Section 2: Social Media Mentions
-    display_mentions(parsed_results)
+    display_mentions(mentions)
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    sentiment_results = analyze_sentiment_by_platform(parsed_results)
+    sentiment_results = analyze_sentiment_by_platform(mentions)
     display_sentiment_charts(sentiment_results)
 
     # Section 4: Key Themes and Recommendations
     st.subheader("4. Key Themes and Recommendations")
-    themes = extract_key_themes(parsed_results)
+    themes = extract_key_themes(mentions)
     recommendations = generate_recommendations(themes)
 
     st.write("**Notable Themes:**")
@@ -171,10 +174,10 @@ brand_name = st.text_input("Enter the Brand or Topic Name")
 if st.button("Start Analysis"):
     if brand_name:
         st.write("Starting social media monitoring and sentiment analysis...")
-        parsed_results = fetch_mentions(brand_name)
+        mentions = fetch_mentions(brand_name)
         
-        if parsed_results:
-            display_formatted_report(brand_name, parsed_results)
+        if mentions:
+            display_formatted_report(brand_name, mentions)
         else:
             st.error("Failed to generate the report. Please try again.")
     else:
