@@ -34,7 +34,6 @@ def fetch_mentions(brand_name):
     for source in sources:
         try:
             result = search_tool.search(brand_name)
-            st.write(f"Raw result from {source}: {result}")  # Debug: Show raw result from search tool
             mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
@@ -43,10 +42,8 @@ def fetch_mentions(brand_name):
 
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
-    st.write("Raw tool output:", tool_output)  # Debug
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
-    st.write("Parsed mentions:", parsed_results)  # Debug
     return parsed_results
 
 # Create agents with CrewAI for research and analysis
@@ -54,7 +51,6 @@ def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
         goal=f"Research and gather information about {brand_name} from various sources.",
-        backstory="You are an expert researcher with a knack for finding relevant information quickly.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -65,7 +61,6 @@ def create_agents(brand_name, llm):
     social_media_monitor = Agent(
         role="Social Media Monitor",
         goal=f"Monitor social media platforms for mentions of {brand_name}.",
-        backstory="You are an experienced social media analyst with keen eyes for trends and mentions.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -76,7 +71,6 @@ def create_agents(brand_name, llm):
     sentiment_analyzer = Agent(
         role="Sentiment Analyzer",
         goal=f"Analyze the sentiment of social media mentions about {brand_name}.",
-        backstory="You are an expert in natural language processing and sentiment analysis.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
@@ -86,7 +80,6 @@ def create_agents(brand_name, llm):
     report_generator = Agent(
         role="Report Generator",
         goal=f"Generate comprehensive reports based on the analysis of {brand_name}.",
-        backstory="You are a skilled data analyst and report writer, adept at presenting insights clearly.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
@@ -138,7 +131,6 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-            st.write("Raw result from CrewAI:", result)  # Debug: Show raw CrewAI result
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -149,20 +141,23 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Parse and display online mentions in a structured format
-def parse_mentions_text(raw_text):
-    mention_blocks = re.findall(
-        r"(?:\- \*\*|\*\*)?(Counts|Platforms|Notable Mentions|Hashtags):\s+(.*?)(?=\n\n|\n\-\-|\Z)",
-        raw_text,
-        re.DOTALL
-    )
-    
-    structured_mentions = {}
-    for block_type, content in mention_blocks:
-        content = re.sub(r"(\n\s*\-|\n|\s{2,})", " ", content).strip()
-        structured_mentions[block_type] = content
+# Function to parse JSON data for Online Mentions
+def parse_json_output(report_output):
+    try:
+        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+        sentiment_data = report_data.get('report', {}).get('sentiment_analysis', {})
+        
+        positive = sentiment_data.get("positive_sentiment", {})
+        negative = sentiment_data.get("negative_sentiment", {})
+        neutral = sentiment_data.get("neutral_sentiment", {})
 
-    return structured_mentions
+        notable_themes = report_data.get('report', {}).get('notable_themes', [])
+        recommendations = report_data.get('report', {}).get('recommendations', [])
+
+        return positive, negative, neutral, notable_themes, recommendations
+    except json.JSONDecodeError:
+        st.error("Error parsing JSON data. Please check the JSON format.")
+        return None, None, None, None, None
 
 # Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
@@ -177,55 +172,42 @@ def display_formatted_report(brand_name, result):
     research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
     st.write(research_output)
 
-    # Section 2: Online Mentions
-    st.subheader("2. Online Mentions")
-    mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    
-    if mentions_output:
-        structured_mentions = parse_mentions_text(mentions_output)
-        if structured_mentions:
-            for mention_type, content in structured_mentions.items():
-                st.write(f"**{mention_type}:** {content}")
-        else:
-            st.write("No online mentions available.")
-    else:
-        st.write("No online mentions available.")
+    # Section 2: Online Mentions - Parse JSON report data
+    st.subheader("2. Online Mentions and Sentiment Analysis")
+    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
+
+    positive, negative, neutral, notable_themes, recommendations = parse_json_output(report_output)
+
+    if positive:
+        st.write("### Positive Sentiment")
+        st.write(f"- **Percentage**: {positive.get('percentage', 'N/A')}%")
+        st.write(f"- **Examples**: {', '.join(positive.get('examples', []))}")
+        st.write(f"- **Themes**: {', '.join(positive.get('themes', []))}")
+
+    if negative:
+        st.write("### Negative Sentiment")
+        st.write(f"- **Percentage**: {negative.get('percentage', 'N/A')}%")
+        st.write(f"- **Examples**: {', '.join(negative.get('examples', []))}")
+        st.write(f"- **Themes**: {', '.join(negative.get('themes', []))}")
+
+    if neutral:
+        st.write("### Neutral Sentiment")
+        st.write(f"- **Percentage**: {neutral.get('percentage', 'N/A')}%")
+        st.write(f"- **Examples**: {', '.join(neutral.get('examples', []))}")
+        st.write(f"- **Themes**: {', '.join(neutral.get('themes', []))}")
+
+    if notable_themes:
+        st.write("### Notable Themes")
+        for theme in notable_themes:
+            st.write(f"- **{theme.get('theme', 'No Theme')}**: {theme.get('description', 'No description')}")
 
     # Section 3: Sentiment Analysis
-    st.subheader("3. Sentiment Analysis")
-    sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
-    st.write(sentiment_output)
-
-    # Section 4: Key Themes and Recommendations
-    st.subheader("4. Key Themes and Recommendations")
-    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
-    
-    try:
-        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
-        
-        # Display notable themes
-        themes = report_data.get('SentimentAnalysis', {}).get('KeyInsights', {}).get('NotableThemes', [])
-        if themes:
-            st.write("**Notable Themes:**")
-            for theme in themes:
-                st.write(f"- **{theme.get('Theme', 'No Theme Title')}:** {theme.get('Insight', 'No Insight Available')}")
-        else:
-            st.write("No notable themes available.")
-
-        # Display recommendations
-        recommendations = report_data.get('SentimentAnalysis', {}).get('Recommendations', {})
-        if recommendations:
-            st.write("**Recommendations:**")
-            for rec_key, rec_value in recommendations.items():
-                st.write(f"- **{rec_key.replace('_', ' ').title()}:** {rec_value}")
-        else:
-            st.write("No recommendations available.")
-    except json.JSONDecodeError:
-        st.error("Error parsing JSON data. Please check the JSON format.")
-        st.write("Raw JSON data:")
-        st.write(report_output)
-    except Exception as e:
-        st.error(f"Unexpected error: {e}")
+    st.subheader("3. Recommendations")
+    if recommendations:
+        for recommendation in recommendations:
+            st.write(f"- {recommendation}")
+    else:
+        st.write("No recommendations available.")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
