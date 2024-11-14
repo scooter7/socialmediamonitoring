@@ -189,20 +189,20 @@ def display_formatted_report(brand_name, task_outputs):
 
         # Display structured information if available
         st.write("**Sentiment Distribution**")
-        sentiment_distribution = report_data.get("sentiment_analysis", {}).get("distribution", {})
+        sentiment_distribution = report_data.get("sentiment_distribution", {})
         if sentiment_distribution:
-            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', 'Data unavailable')}%")
-            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', 'Data unavailable')}%")
-            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', 'Data unavailable')}%")
+            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', {}).get('percentage', 'Data unavailable')}%")
+            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', {}).get('percentage', 'Data unavailable')}%")
+            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', {}).get('percentage', 'Data unavailable')}%")
+
+            # Display insights for each sentiment type
+            for sentiment, data in sentiment_distribution.items():
+                st.write(f"**{sentiment.capitalize()} Mentions**")
+                for insight in data.get("key_insights", []):
+                    st.write(f"  - {insight}")
+
         else:
             st.write("Sentiment distribution data is unavailable.")
-
-        st.write("**Key Insights**")
-        key_insights = report_data.get("sentiment_analysis", {}).get("findings", {})
-        for mention_type, details in key_insights.items():
-            st.write(f"- **{mention_type.replace('_', ' ').title()}**")
-            st.write(f"  - Description: {details.get('description', 'No description available')}")
-            st.write(f"  - Highlights: {', '.join(details.get('highlights', []))}")
 
         st.write("**Notable Themes**")
         notable_themes = report_data.get("notable_themes", [])
@@ -215,7 +215,7 @@ def display_formatted_report(brand_name, task_outputs):
         st.write("**Conclusion**")
         conclusion = report_data.get("conclusion", {})
         st.write(f"- Summary: {conclusion.get('summary', 'No summary available')}")
-        st.write(f"- Implications: {conclusion.get('implications', 'No implications available')}")
+        st.write(f"- Polarized View: {conclusion.get('polarized_view', 'No implications available')}")
 
         st.write("**Recommendations**")
         recommendations = report_data.get("recommendations", [])
