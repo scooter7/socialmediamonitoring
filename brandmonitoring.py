@@ -33,10 +33,10 @@ def fetch_mentions(brand_name):
     mentions = {}
     for source in sources:
         try:
-            # Assuming `SerperDevTool` uses a `.run()` method instead of `.search()`
-            mentions[source] = search_tool.run(f"{brand_name} site:{source.lower()}.com")
-        except AttributeError:
-            st.error(f"The search tool does not support searching with '{source}'.")
+            # Adjusting the query to a simpler form for compatibility
+            mentions[source] = search_tool.run(brand_name)
+        except TypeError:
+            st.error(f"The search tool encountered an error with '{source}' query.")
             mentions[source] = []
     return mentions
 
