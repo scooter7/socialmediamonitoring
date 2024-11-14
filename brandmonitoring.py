@@ -186,36 +186,40 @@ def display_formatted_report(brand_name, result):
         # Access the 'report' section in the JSON data
         report = report_data.get("report", {})
 
-        # Check if there's data in Key Insights or Recommendations
+        # Sentiment distribution and key insights
+        sentiment_distribution = report.get("sentiment_distribution", {})
         key_insights = report.get("key_insights", {})
-        recommendations = report_data.get("recommendations", {})
+        recommendations = report.get("recommendations", {})
 
-        if key_insights or recommendations:
-            # Only display this section if either Key Insights or Recommendations are available
+        if sentiment_distribution or key_insights or recommendations:
+            # Only display this section if any data is available
             st.subheader("4. Key Themes and Recommendations")
 
-            # Detailed Sentiment Distribution (If metrics are provided separately from the summary)
-            sentiment_analysis = report.get("sentiment_analysis", {}).get("sentiment_distribution", {})
-            if sentiment_analysis:
+            # Detailed Sentiment Distribution
+            if sentiment_distribution:
                 st.write("**Sentiment Distribution (Detailed Metrics)**")
-                st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
-                st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral_mentions', 'N/A')}")
-                st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
+                st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', {}).get('percentage', 'N/A')}%")
+                st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', {}).get('percentage', 'N/A')}%")
+                st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', {}).get('percentage', 'N/A')}%")
 
-            # Display Key Insights only if available
-            if key_insights:
+            # Display Key Insights
+            if isinstance(key_insights, dict):
                 st.write("**Key Insights**")
                 for theme, details in key_insights.items():
                     st.write(f"- **{theme.replace('_', ' ').title()}**")
                     st.write(f"  - Description: {details.get('description', 'No description available')}")
                     st.write(f"  - Impact: {details.get('impact', 'No impact available')}")
+            else:
+                st.write("Key insights were provided as a string and could not be displayed as structured data.")
 
-            # Display Recommendations only if available
-            if recommendations:
+            # Display Recommendations
+            if isinstance(recommendations, dict):
                 st.write("**Recommendations**")
-                for index, recommendation in recommendations.items():
+                for key, recommendation in recommendations.items():
                     st.write(f"- **{recommendation.get('recommendation', 'No recommendation specified')}**")
                     st.write(f"  - Action: {recommendation.get('action', 'No additional details provided')}")
+            else:
+                st.write("Recommendations were provided as a string and could not be displayed as structured data.")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
