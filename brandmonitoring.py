@@ -185,16 +185,26 @@ def display_formatted_report(brand_name, result):
         report_output_cleaned = re.sub(r'```(?:json)?\n|\n```', '', report_output)
         report_data = json.loads(report_output_cleaned)
 
+        # Debugging: Show the full JSON structure of report_data
+        st.write("Debug: Full JSON Structure of Report Data")
+        st.json(report_data)
+
         # Access the 'report' section in the JSON data
         report = report_data.get("report", {})
 
-        # Display structured information
+        # Sentiment Distribution
         st.write("**Sentiment Distribution**")
         sentiment_distribution = report.get("sentiment_distribution", {})
+        
+        # Debugging: Show sentiment distribution structure
+        st.write("Debug: Sentiment Distribution Structure")
+        st.json(sentiment_distribution)
+
         st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', {}).get('percentage', 'N/A')}%")
         st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', {}).get('percentage', 'N/A')}%")
         st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', {}).get('percentage', 'N/A')}%")
 
+        # Notable Themes
         st.write("**Notable Themes**")
         notable_themes = report.get("notable_themes", [])
         if notable_themes:
@@ -204,6 +214,7 @@ def display_formatted_report(brand_name, result):
         else:
             st.write("No notable themes available.")
 
+        # Recommendations
         st.write("**Recommendations**")
         recommendations = report.get("conclusion", {}).get("recommendations", [])
         if recommendations:
@@ -212,6 +223,7 @@ def display_formatted_report(brand_name, result):
         else:
             st.write("No recommendations available.")
 
+        # Conclusion
         st.write("**Conclusion**")
         conclusion = report.get("conclusion", {})
         st.write(f"- Overall Sentiment: {conclusion.get('summary', 'No overall sentiment description')}")
@@ -223,6 +235,10 @@ def display_formatted_report(brand_name, result):
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
+        st.write("Debugging Information:")
+        st.write(f"Raw report output: {report_output}")
+        st.write(f"Cleaned report output: {report_output_cleaned}")
+        st.write(f"Error details: {str(e)}")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
