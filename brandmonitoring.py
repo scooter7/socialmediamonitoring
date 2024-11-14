@@ -152,6 +152,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display formatted report based on task outputs
+# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -185,34 +186,52 @@ def display_formatted_report(brand_name, result):
     # Section 4: Key Themes and Recommendations
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
-    
+
     try:
         # Parse JSON-formatted report
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))["report"]
-        
-        # Display structured information
+
+        # Sentiment Distribution
         st.write("**Sentiment Distribution**")
-        st.write(f"- Positive Mentions: {report_data['sentiment_distribution']['positive_mentions']}%")
-        st.write(f"- Neutral Mentions: {report_data['sentiment_distribution']['neutral_mentions']}%")
-        st.write(f"- Negative Mentions: {report_data['sentiment_distribution']['negative_mentions']}%")
+        distribution = report_data.get("sentiment_analysis", {}).get("overall_sentiment_distribution", {})
+        st.write(f"- Positive Mentions: {distribution.get('positive_mentions', 'N/A')}%")
+        st.write(f"- Neutral Mentions: {distribution.get('neutral_mentions', 'N/A')}%")
+        st.write(f"- Negative Mentions: {distribution.get('negative_mentions', 'N/A')}%")
+
+        # Notable Themes
+        st.write("**Notable Themes**")
+        notable_themes = report_data.get("sentiment_analysis", {}).get("notable_themes", [])
+        for theme in notable_themes:
+            st.write(f"- **{theme['theme']}**: {theme['description']}")
+            example_comments = theme.get("example_comments", [])
+            if example_comments:
+                st.write("  - Example Comments: " + "; ".join(example_comments))
+
+        # Negative and Neutral Mentions
+        negative_mentions = report_data.get("sentiment_analysis", {}).get("negative_mentions", {})
+        st.write("**Negative Mentions**")
+        st.write(negative_mentions.get("description", "No negative mentions available."))
+        st.write("  - Example Comments: " + "; ".join(negative_mentions.get("example_comments", [])))
+
+        neutral_mentions = report_data.get("sentiment_analysis", {}).get("neutral_mentions", {})
+        st.write("**Neutral Mentions**")
+        st.write(neutral_mentions.get("description", "No neutral mentions available."))
+
+        # Conclusion and Recommendations
+        st.write("**Conclusion**")
+        conclusion = report_data.get("conclusion", {})
+        st.write(conclusion.get("summary", "No summary available."))
 
         st.write("**Key Insights**")
-        for theme, details in report_data["key_insights"].items():
-            st.write(f"- **{theme.replace('_', ' ').title()}**: {details['description']}")
-            if "positive_comments" in details:
-                st.write("  - Positive Comments: " + ", ".join(details["positive_comments"]))
-            if "negative_comments" in details:
-                st.write("  - Negative Comments: " + ", ".join(details["negative_comments"]))
-            if "examples" in details:
-                st.write("  - Examples: " + ", ".join(details["examples"]))
-            if "hashtags" in details:
-                st.write("  - Hashtags: " + ", ".join(details["hashtags"]))
+        for insight in conclusion.get("key_insights", []):
+            st.write(f"- {insight}")
 
         st.write("**Recommendations**")
-        for rec in report_data["recommendations"]:
-            st.write(f"- **{rec['focus_area']}**: {rec['action']}")
+        for rec in conclusion.get("recommendations", []):
+            st.write(f"- {rec}")
+
     except (json.JSONDecodeError, KeyError, AttributeError):
-        st.write("Error parsing the JSON-formatted report.")
+        st.error("Error parsing the JSON-formatted report.")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
