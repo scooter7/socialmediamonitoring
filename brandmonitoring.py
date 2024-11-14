@@ -28,34 +28,16 @@ def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
 # Enhanced function to fetch online mentions with error handling
-import requests
-
-# Function to fetch mentions using Google Programmable Search API
 def fetch_mentions(brand_name):
     sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
-    mentions = []
+    mentions = {}
     for source in sources:
         try:
-            # Set up a search URL for Google Programmable Search API
-            search_url = f"https://www.googleapis.com/customsearch/v1"
-            params = {
-                "key": os.getenv("SERPER_API_KEY"),  # Google API key here
-                "cx": "YOUR_CX_CODE",  # Your Programmable Search CX code
-                "q": f"{brand_name} site:{source.lower()}.com"
-            }
-            response = requests.get(search_url, params=params)
-            response.raise_for_status()
-            data = response.json()
-
-            # Parse the search results and add to mentions
-            for item in data.get("items", []):
-                mentions.append({
-                    "title": item.get("title"),
-                    "link": item.get("link"),
-                    "snippet": item.get("snippet")
-                })
+            result = search_tool.search(brand_name)
+            mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
+            mentions[source] = []  # Store an empty list if an error occurs
     return mentions
 
 # Parse tool output to extract structured data
@@ -164,36 +146,27 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display formatted report based on task outputs
-# Enhanced function to fetch online mentions with error handling
-def fetch_mentions(brand_name):
-    sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
-    mentions = []
-    for source in sources:
-        try:
-            # Conduct a search for the brand on each source
-            result = search_tool.search(brand_name + " site:" + source.lower() + ".com")
-            if result:
-                mentions.extend(parse_tool_output(result))  # Add parsed results to mentions list
-        except Exception as e:
-            st.warning(f"Could not retrieve data from {source}. Error: {e}")
-    return mentions
-
 # Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
+    # Extract task outputs
+    task_outputs = result.tasks_output
+
     # Section 1: Research Findings
     st.subheader("1. Research Findings")
-    research_output = result.tasks_output[0].raw if result.tasks_output[0] else "No data available"
+    research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
     st.write(research_output)
 
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
-    mentions_output = fetch_mentions(brand_name)
+    mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
     if mentions_output:
         st.write("## Tool Output:")
-        for mention in mentions_output:
+        # Display each mention in the exact format requested
+        parsed_mentions = parse_tool_output(mentions_output)
+        for mention in parsed_mentions:
             st.write(f"**Title**: {mention['title']}")
             st.write(f"**Link**: {mention['link']}")
             st.write(f"**Snippet**: {mention['snippet']}")
@@ -203,9 +176,9 @@ def display_formatted_report(brand_name, result):
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    sentiment_output = result.tasks_output[2].raw if result.tasks_output[2] else "No sentiment data available"
+    sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
     st.write(sentiment_output)
-    
+
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
 st.write("Analyze a brand or topic with integrated online monitoring, sentiment analysis, and report generation.")
