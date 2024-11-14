@@ -10,7 +10,6 @@ from crewai import Agent, Task, Crew
 from crewai_tools import SerperDevTool
 from langchain_openai import ChatOpenAI
 import openai
-import matplotlib.pyplot as plt
 import json
 
 # Load environment variables from .env file
@@ -94,9 +93,9 @@ def create_tasks(brand_name, agents):
     )
 
     report_generation_task = Task(
-        description=f"Generate a comprehensive report about {brand_name} based on the research and sentiment analysis.",
+        description=f"Generate a JSON-formatted report for {brand_name} based on findings.",
         agent=agents[3],
-        expected_output="Comprehensive report including key insights and recommendations."
+        expected_output="Comprehensive report in JSON format including key insights and recommendations."
     )
 
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
@@ -116,10 +115,16 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-            # Verify if result is a dictionary, if not convert or handle appropriately
-            if not isinstance(result, dict):
-                st.write("Debug: Result type not dict; attempting conversion.")
-                result = result.dict() if hasattr(result, "dict") else json.loads(result.json())
+
+            # Check structure of result and debug
+            if not result or "tasks_output" not in dir(result):
+                st.write("Debug: Result object or tasks_output is missing")
+                continue
+
+            # Ensure each task's output is accessible
+            for idx, task_output in enumerate(result.tasks_output):
+                st.write(f"Debug: Task {idx + 1} - {task_output.raw}")
+
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -130,92 +135,25 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Display the formatted report with charts and structure
+# Format the final report nicely
 def display_formatted_report(brand_name, result):
-    st.title(f"Social Media and Sentiment Analysis Report for {brand_name}")
-    st.write("---")
-
-    # Display Debugging Data to Trace Output Structure
+    st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
+    
     try:
         st.write("Debug: Result Keys")
-        st.write(list(result.keys()))
-    except Exception as e:
-        st.error("Error accessing result keys.")
-        st.write(e)
-        return
+        st.write(list(result.tasks_output))
 
-    # Section 1: Research Findings
-    research_key = "Research DMACC and summarize online presence and activities."
-    if research_key in result:
-        st.subheader("1. Research Findings")
-        research_data = result.get(research_key, {}).get("raw_output", "No research findings available.")
-        st.write(research_data)
-    else:
-        st.write("No research findings available.")
+        for idx, task_output in enumerate(result.tasks_output):
+            # Print each part of the task output
+            task_summary = getattr(task_output, "summary", "No summary available.")
+            task_raw = getattr(task_output, "raw", "No raw output available.")
+            st.subheader(f"Section {idx + 1}: Task {idx + 1} Output")
+            st.write(task_summary)
+            st.write(task_raw)
 
-    # Section 2: Social Media Mentions
-    mentions_key = "Monitor social media platforms for mentions of 'DMACC'."
-    if mentions_key in result:
-        st.subheader("2. Social Media Mentions")
-        mentions_data = result.get(mentions_key, {}).get("raw_output", "No social media mentions available.")
-        st.write(mentions_data)
-    else:
-        st.write("No social media mentions available.")
-
-    # Section 3: Sentiment Analysis
-    sentiment_key = "Analyze sentiment of the social media mentions about DMACC."
-    if sentiment_key in result:
-        st.subheader("3. Sentiment Analysis")
-        sentiment_data = result.get(sentiment_key, {}).get("raw_output", "No sentiment analysis available.")
-        st.write(sentiment_data)
-        
-        # Display Sentiment Distribution Chart if data is available
-        if "positive" in sentiment_data.lower() or "negative" in sentiment_data.lower():
-            st.subheader("Sentiment Distribution")
-            sentiment_breakdown = {"Positive": 70, "Neutral": 20, "Negative": 10}  # Sample values for testing
-            labels = list(sentiment_breakdown.keys())
-            sizes = list(sentiment_breakdown.values())
-            fig, ax = plt.subplots()
-            ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
-            ax.axis('equal')
-            st.pyplot(fig)
-    else:
-        st.write("No sentiment analysis available.")
-
-    # Section 4: Themes Identified
-    st.subheader("4. Key Themes Identified")
-    themes_key = "Generate a JSON-formatted report for DMACC based on findings."
-    if themes_key in result:
-        try:
-            json_data = json.loads(result[themes_key]["raw_output"]).get("report", {}).get("themes_identified", [])
-            if json_data:
-                for theme in json_data:
-                    st.write(f"**Theme**: {theme['theme']}")
-                    st.write(f"Description: {theme['description']}")
-            else:
-                st.write("No themes identified.")
-        except Exception as e:
-            st.error("Error parsing themes.")
-            st.write(e)
-    else:
-        st.write("No themes identified.")
-
-    # Section 5: Recommendations
-    st.subheader("5. Recommendations")
-    recommendations_key = themes_key
-    if recommendations_key in result:
-        try:
-            recommendations = json.loads(result[recommendations_key]["raw_output"]).get("report", {}).get("recommendations", [])
-            if recommendations:
-                for recommendation in recommendations:
-                    st.write(f"- **{recommendation}**")
-            else:
-                st.write("No recommendations available.")
-        except Exception as e:
-            st.error("Error parsing recommendations.")
-            st.write(e)
-    else:
-        st.write("No recommendations available.")
+    except AttributeError as e:
+        st.error("There was an error accessing the output structure.")
+        st.write("Debug: Error Details:", str(e))
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
