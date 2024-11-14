@@ -213,12 +213,20 @@ from collections import Counter
 from sklearn.feature_extraction.text import CountVectorizer
 
 def extract_key_themes(mentions):
-    text_data = [post["text"] for platform_posts in mentions.values() for post in platform_posts]
+    # Collect text content from all platform mentions
+    text_data = [post["text"] for platform_posts in mentions.values() for post in platform_posts if "text" in post]
+
+    if not text_data:
+        st.warning("No text data available in mentions to extract themes.")
+        return {}  # Return an empty dictionary if there's no text data
+
     # Vectorize words to find common themes
     vectorizer = CountVectorizer(stop_words='english', max_features=10)
     X = vectorizer.fit_transform(text_data)
     word_counts = Counter(X.toarray().sum(axis=0))
-    themes = {word: {"description": f"High frequency mention of {word}"} for word, count in word_counts.items()}
+    
+    # Create a dictionary of themes
+    themes = {word: {"description": f"High frequency mention of '{word}'"} for word, count in zip(vectorizer.get_feature_names_out(), word_counts)}
     return themes
 
 def generate_recommendations(themes):
@@ -273,7 +281,7 @@ def display_formatted_report(brand_name, result):
         for theme, info in themes.items():
             st.write(f"- **{theme}**: {info['description']}")
     else:
-        st.write("No notable themes identified.")
+        st.write("No notable themes identified due to insufficient data.")
 
     # Display generated recommendations
     st.write("**Recommendations:**")
