@@ -113,6 +113,7 @@ def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
         goal=f"Research and gather information about {brand_name} from various sources.",
+        backstory="You are an expert researcher with a knack for finding relevant information quickly.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -123,6 +124,7 @@ def create_agents(brand_name, llm):
     social_media_monitor = Agent(
         role="Social Media Monitor",
         goal=f"Monitor social media platforms for mentions of {brand_name}.",
+        backstory="You are an experienced social media analyst with keen eyes for trends and mentions.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -133,6 +135,7 @@ def create_agents(brand_name, llm):
     sentiment_analyzer = Agent(
         role="Sentiment Analyzer",
         goal=f"Analyze the sentiment of social media mentions about {brand_name}.",
+        backstory="You are an expert in natural language processing and sentiment analysis.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
@@ -142,6 +145,7 @@ def create_agents(brand_name, llm):
     report_generator = Agent(
         role="Report Generator",
         goal=f"Generate comprehensive reports based on the analysis of {brand_name}.",
+        backstory="You are a skilled data analyst and report writer, adept at presenting insights clearly.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
