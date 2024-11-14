@@ -12,7 +12,6 @@ from langchain_openai import ChatOpenAI
 import openai
 import matplotlib.pyplot as plt
 import pandas as pd
-import json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -108,11 +107,9 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 
     for attempt in range(max_retries):
         try:
-            # Execute crew tasks
             result = crew.kickoff()
             output = {}
 
-            # Extract outputs from tasks_output or similar property
             if hasattr(result, "tasks_output"):
                 for task_output in result.tasks_output:
                     if hasattr(task_output, "description"):
@@ -134,58 +131,36 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Function to visualize data in charts
-def create_visualizations(mentions_data, sentiment_data):
-    # Social media mention breakdown
-    if mentions_data:
-        mention_counts = pd.DataFrame(mentions_data).groupby("platform").size().reset_index(name="counts")
-        st.subheader("Social Media Mentions by Platform")
-        plt.figure(figsize=(8, 5))
-        plt.bar(mention_counts["platform"], mention_counts["counts"])
-        plt.title("Mentions by Platform")
-        plt.xlabel("Platform")
-        plt.ylabel("Mentions")
-        st.pyplot(plt)
-
-    # Sentiment distribution
-    if sentiment_data:
-        sentiment_df = pd.DataFrame(sentiment_data, columns=["Sentiment", "Count"])
-        st.subheader("Sentiment Analysis Distribution")
-        plt.figure(figsize=(8, 5))
-        plt.pie(sentiment_df["Count"], labels=sentiment_df["Sentiment"], autopct="%1.1f%%")
-        plt.title("Sentiment Distribution")
-        st.pyplot(plt)
-
-# Display formatted report
+# Function to display the formatted report
 def display_report(brand_name, result):
-    st.header(f"Report for {brand_name}")
+    st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
 
-    # Debugging: Show the raw structure of the result
-    st.write("Debug: Raw Result Structure")
-    st.json(result)  # Displaying the full JSON structure for inspection
-
-    # Display each section if data is available
+    # Research Findings
     if "Research Findings" in result:
-        st.subheader("Research Findings")
+        st.subheader("1. Research Findings")
         st.write(result.get("Research Findings", "No research findings available."))
 
+    # Social Media Mentions
     if "Social Media Mentions" in result:
-        st.subheader("Social Media Mentions")
-        social_media_mentions = result["Social Media Mentions"]
-        for platform, mentions in social_media_mentions.items():
-            st.write(f"**{platform}**")
+        st.subheader("2. Social Media Mentions")
+        for platform, mentions in result["Social Media Mentions"].items():
+            st.markdown(f"**{platform}**")
             for mention in mentions:
-                st.write(f"- {mention}")
-    
-    if "Sentiment Analysis" in result:
-        st.subheader("Sentiment Analysis")
-        sentiment_analysis = result["Sentiment Analysis"]
-        sentiment_summary = {sentiment: count for sentiment, count in sentiment_analysis.items()}
-        create_visualizations(social_media_mentions, sentiment_summary)
+                st.markdown(f"- {mention}")
 
+    # Sentiment Analysis
+    if "Sentiment Analysis" in result:
+        st.subheader("3. Sentiment Analysis")
+        sentiment_data = result["Sentiment Analysis"]
+        for sentiment, count in sentiment_data.items():
+            st.markdown(f"**{sentiment.capitalize()} Mentions:** {count}")
+
+    # Recommendations
     if "Recommendations" in result:
-        st.subheader("Recommendations")
-        st.write(result.get("Recommendations", "No recommendations available."))
+        st.subheader("4. Recommendations")
+        recommendations = result["Recommendations"]
+        for rec in recommendations:
+            st.markdown(f"- **{rec['recommendation']}**: {rec['rationale']}")
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
