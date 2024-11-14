@@ -183,27 +183,33 @@ def display_formatted_report(brand_name, task_outputs):
     st.write("**Raw Report Output**", report_output)
 
     try:
-        # Remove triple backticks from report output for clean JSON parsing
+        # Remove backticks and clean up any extraneous whitespace
         report_output_cleaned = report_output.replace("```json", "").replace("```", "").strip()
-        report_data = json.loads(report_output_cleaned)
 
-        # Display structured information if available
+        # Check if the cleaned string is valid JSON
+        try:
+            report_data = json.loads(report_output_cleaned)
+        except json.JSONDecodeError:
+            st.error("Error: Unable to parse JSON. Please check JSON format.")
+            return
+
+        # Display structured information if JSON parsed successfully
         st.write("**Sentiment Distribution**")
-        sentiment_distribution = report_data.get("social_media_sentiment_analysis", {}).get("sentiment_distribution", {})
+        sentiment_distribution = report_data.get("sentiment_analysis", {}).get("sentiment_distribution", {})
         if sentiment_distribution:
-            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive_mentions', 'Data unavailable')}")
-            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative_mentions', 'Data unavailable')}")
-            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral_mentions', 'Data unavailable')}")
+            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', 'Data unavailable')}%")
+            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', 'Data unavailable')}%")
+            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', 'Data unavailable')}%")
 
         st.write("**Notable Themes**")
-        notable_themes = report_data.get("social_media_sentiment_analysis", {}).get("notable_themes", [])
+        notable_themes = report_data.get("notable_themes", [])
         for theme in notable_themes:
             st.write(f"- **{theme.get('theme', 'Unnamed Theme')}**")
             st.write(f"  - Description: {theme.get('description', 'No description available')}")
 
         st.write("**Conclusion**")
-        conclusion = report_data.get("social_media_sentiment_analysis", {}).get("overall_sentiment", {})
-        st.write(f"- Summary: {conclusion.get('description', 'No summary available')}")
+        conclusion = report_data.get("conclusion", {})
+        st.write(f"- Summary: {conclusion.get('summary', 'No summary available')}")
         st.write(f"- Areas for Improvement: {conclusion.get('areas_for_improvement', 'No implications available')}")
 
         st.write("**Recommendations**")
