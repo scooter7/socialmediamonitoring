@@ -110,10 +110,10 @@ def run_social_media_monitoring(brand_name, max_retries=3):
             # Run each task individually to manually format the JSON output
             result = crew.kickoff()
             output = {
-                "Research Findings": result.tasks[0].output,
-                "Social Media Mentions": result.tasks[1].output,
-                "Sentiment Analysis": result.tasks[2].output,
-                "Recommendations": result.tasks[3].output
+                "Research Findings": result.get(0),  # Adjust based on task output indexing
+                "Social Media Mentions": result.get(1),
+                "Sentiment Analysis": result.get(2),
+                "Recommendations": result.get(3)
             }
             return output
         except Exception as e:
