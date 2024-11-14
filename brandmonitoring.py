@@ -185,53 +185,37 @@ def display_formatted_report(brand_name, result):
         report_output_cleaned = re.sub(r'```(?:json)?\n|\n```', '', report_output)
         report_data = json.loads(report_output_cleaned)
 
-        # Debugging: Show the full JSON structure of report_data
-        st.write("Debug: Full JSON Structure of Report Data")
-        st.json(report_data)
-
         # Access the 'report' section in the JSON data
         report = report_data.get("report", {})
 
-        # Sentiment Distribution
+        # Sentiment Analysis
         st.write("**Sentiment Distribution**")
-        sentiment_distribution = report.get("sentiment_distribution", {})
-        
-        # Debugging: Show sentiment distribution structure
-        st.write("Debug: Sentiment Distribution Structure")
-        st.json(sentiment_distribution)
+        sentiment_analysis = report.get("sentiment_analysis", {})
+        st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
+        st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral_mentions', 'N/A')}")
+        st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
+        st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
 
-        st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', {}).get('percentage', 'N/A')}%")
-        st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', {}).get('percentage', 'N/A')}%")
-        st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', {}).get('percentage', 'N/A')}%")
-
-        # Notable Themes
-        st.write("**Notable Themes**")
-        notable_themes = report.get("notable_themes", [])
-        if notable_themes:
-            for theme in notable_themes:
-                st.write(f"- **{theme.get('theme', 'Unknown Theme')}**")
-                st.write(f"  - Description: {theme.get('description', 'No description available')}")
+        # Key Insights
+        st.write("**Key Insights**")
+        key_insights = report.get("key_insights", {})
+        if key_insights:
+            for key, insight in key_insights.items():
+                st.write(f"- **{key.replace('_', ' ').title()}**")
+                st.write(f"  - Description: {insight.get('description', 'No description available')}")
+                st.write(f"  - Feedback: {insight.get('feedback', 'No feedback available')}")
         else:
-            st.write("No notable themes available.")
+            st.write("No key insights available.")
 
         # Recommendations
         st.write("**Recommendations**")
-        recommendations = report.get("conclusion", {}).get("recommendations", [])
+        recommendations = report.get("recommendations", [])
         if recommendations:
             for recommendation in recommendations:
-                st.write(f"- **{recommendation}**")
+                st.write(f"- **{recommendation.get('action', 'No action specified')}**")
+                st.write(f"  - {recommendation.get('details', 'No additional details provided')}")
         else:
             st.write("No recommendations available.")
-
-        # Conclusion
-        st.write("**Conclusion**")
-        conclusion = report.get("conclusion", {})
-        st.write(f"- Overall Sentiment: {conclusion.get('summary', 'No overall sentiment description')}")
-        insights = conclusion.get("insights", [])
-        if insights:
-            st.write("**Insights:**")
-            for insight in insights:
-                st.write(f"  - {insight}")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
