@@ -126,28 +126,31 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Function to parse and display data in a readable format
+# Function to parse and display CrewAI data in a readable format
 def parse_and_display_raw_data(report_output):
     try:
-        # Parse the JSON data
+        # Parse JSON and retrieve main sections
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         sentiment_data = report_data.get('report', {}).get('sentiment_analysis', {})
         
-        # Display sentiment details
+        # Display sentiment details under each category
         st.write("### Positive Sentiment")
-        st.write(f"**Percentage:** {sentiment_data.get('positive_sentiment', {}).get('percentage', 'N/A')}%")
-        st.write(f"**Examples:** {', '.join(sentiment_data.get('positive_sentiment', {}).get('examples', []))}")
-        st.write(f"**Themes:** {', '.join(sentiment_data.get('positive_sentiment', {}).get('themes', []))}")
+        pos_sentiment = sentiment_data.get('positive_sentiment', {})
+        st.write(f"**Percentage:** {pos_sentiment.get('percentage', 'N/A')}%")
+        st.write(f"**Examples:** {', '.join(pos_sentiment.get('examples', []))}")
+        st.write(f"**Themes:** {', '.join(pos_sentiment.get('themes', []))}")
         
         st.write("### Negative Sentiment")
-        st.write(f"**Percentage:** {sentiment_data.get('negative_sentiment', {}).get('percentage', 'N/A')}%")
-        st.write(f"**Examples:** {', '.join(sentiment_data.get('negative_sentiment', {}).get('examples', []))}")
-        st.write(f"**Themes:** {', '.join(sentiment_data.get('negative_sentiment', {}).get('themes', []))}")
+        neg_sentiment = sentiment_data.get('negative_sentiment', {})
+        st.write(f"**Percentage:** {neg_sentiment.get('percentage', 'N/A')}%")
+        st.write(f"**Examples:** {', '.join(neg_sentiment.get('examples', []))}")
+        st.write(f"**Themes:** {', '.join(neg_sentiment.get('themes', []))}")
         
         st.write("### Neutral Sentiment")
-        st.write(f"**Percentage:** {sentiment_data.get('neutral_sentiment', {}).get('percentage', 'N/A')}%")
-        st.write(f"**Examples:** {', '.join(sentiment_data.get('neutral_sentiment', {}).get('examples', []))}")
-        st.write(f"**Themes:** {', '.join(sentiment_data.get('neutral_sentiment', {}).get('themes', []))}")
+        neu_sentiment = sentiment_data.get('neutral_sentiment', {})
+        st.write(f"**Percentage:** {neu_sentiment.get('percentage', 'N/A')}%")
+        st.write(f"**Examples:** {', '.join(neu_sentiment.get('examples', []))}")
+        st.write(f"**Themes:** {', '.join(neu_sentiment.get('themes', []))}")
         
         # Display notable themes
         notable_themes = report_data.get('report', {}).get('notable_themes', [])
