@@ -116,9 +116,14 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
-            if hasattr(result, 'json_dict'):
+            st.write("Debug: Raw result from Crew:", result)  # Debugging line to inspect raw result
+            if hasattr(result, 'json_dict') and result.json_dict:
                 return result.json_dict  # Return as dictionary if possible
-            return json.loads(result.raw)  # Attempt to parse JSON if it's a string
+            elif hasattr(result, 'raw') and result.raw:
+                return json.loads(result.raw)  # Attempt to parse JSON if it's a string
+            else:
+                st.write("Debug: Crew output is empty or unparseable.")
+                return None
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
@@ -195,6 +200,7 @@ if st.button("Start Analysis", key="start_analysis_button"):
         result = run_social_media_monitoring(brand_name)
         
         if result:
+            st.write("Debug: Final parsed report data:", result)  # Debugging line to inspect parsed report
             display_formatted_report(brand_name, result)
         else:
             st.error("Failed to generate the report. Please try again.")
