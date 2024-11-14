@@ -27,19 +27,6 @@ search_tool = SerperDevTool()
 def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
-# Enhanced function to fetch online mentions with error handling
-def fetch_mentions(brand_name):
-    sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
-    mentions = {}
-    for source in sources:
-        try:
-            result = search_tool.search(brand_name)
-            mentions[source] = parse_tool_output(result) if result else []
-        except Exception as e:
-            st.warning(f"Could not retrieve data from {source}. Error: {e}")
-            mentions[source] = []
-    return mentions
-
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
@@ -50,7 +37,7 @@ def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
         goal=f"Research and gather information about {brand_name} from various sources.",
-        backstory="You are an expert researcher with a knack for finding relevant information quickly.",
+        backstory="You are an experienced social media researcher, skilled at quickly gathering accurate information and identifying notable trends across multiple online platforms.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -61,7 +48,7 @@ def create_agents(brand_name, llm):
     social_media_monitor = Agent(
         role="Social Media Monitor",
         goal=f"Monitor social media platforms for mentions of {brand_name}.",
-        backstory="You are an experienced social media analyst with keen eyes for trends and mentions.",
+        backstory="As a seasoned social media analyst, you excel at tracking online mentions, uncovering sentiment trends, and recognizing emerging discussions.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -72,7 +59,7 @@ def create_agents(brand_name, llm):
     sentiment_analyzer = Agent(
         role="Sentiment Analyzer",
         goal=f"Analyze the sentiment of social media mentions about {brand_name}.",
-        backstory="You are an expert in natural language processing and sentiment analysis.",
+        backstory="With a strong background in natural language processing, you are skilled at evaluating sentiment and interpreting user opinions to deliver a comprehensive sentiment distribution.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
@@ -82,7 +69,7 @@ def create_agents(brand_name, llm):
     report_generator = Agent(
         role="Report Generator",
         goal=f"Generate comprehensive reports based on the analysis of {brand_name}.",
-        backstory="You are a skilled data analyst and report writer, adept at presenting insights clearly.",
+        backstory="As an accomplished data analyst, you excel at synthesizing insights into structured, clear reports with actionable recommendations.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
