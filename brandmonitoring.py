@@ -167,15 +167,7 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    parsed_mentions = parse_tool_output(mentions_output)
-    if parsed_mentions:
-        for mention in parsed_mentions:
-            st.write(f"**Title:** {mention['title']}")
-            st.write(f"**Link:** [Read more]({mention['link']})")
-            st.write(f"**Snippet:** {mention['snippet']}")
-            st.write("---")
-    else:
-        st.write("No online mentions available.")
+    st.write(mentions_output)
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
@@ -187,38 +179,43 @@ def display_formatted_report(brand_name, result):
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
 
     try:
-        # Parse JSON-formatted report with the correct key extraction
-        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))["UniversityOfIowaReport"]
+        # Remove the surrounding markdown formatting for JSON (` ```json `)
+        report_output = report_output.strip("```json\n").strip("\n```")
+        
+        # Parse the JSON content
+        report_data = json.loads(report_output)["report"]
+
+        # Display title and date
+        st.write(f"**Title**: {report_data.get('title', 'No Title')}")
+        st.write(f"**Date**: {report_data.get('date', 'No Date')}")
+        st.write("---")
 
         # Display Sentiment Distribution
-        st.write("**Sentiment Distribution**")
-        distribution = report_data.get("sentimentDistribution", {})
-        st.write(f"- Positive Mentions: {distribution.get('positiveMentions', 'N/A')}%")
-        st.write(f"- Neutral Mentions: {distribution.get('neutralMentions', 'N/A')}%")
-        st.write(f"- Negative Mentions: {distribution.get('negativeMentions', 'N/A')}%")
+        st.write("### Sentiment Distribution")
+        sentiment_distribution = report_data.get("sentiment_distribution", {})
+        for sentiment, details in sentiment_distribution.items():
+            st.write(f"**{sentiment.capitalize()} Mentions**")
+            st.write(f"- Count: {details.get('mentions', 'N/A')}")
+            st.write(f"- Percentage: {details.get('percentage', 'N/A')}%")
+            for insight in details.get("insights", []):
+                st.write(f"  - {insight}")
 
         # Display Notable Themes
-        st.write("**Notable Themes**")
-        notable_themes = report_data.get("notableThemes", [])
+        st.write("### Notable Themes")
+        notable_themes = report_data.get("notable_themes", [])
         for theme in notable_themes:
-            st.write(f"- **{theme['theme']}**: {theme['insight']}")
-            st.write(f"  - Impact: {theme['impact']}")
+            st.write(f"- **{theme['theme']}**: {theme['description']}")
 
-        # Display Conclusion
-        conclusion = report_data.get("conclusion", {})
-        st.write("**Conclusion**")
-        st.write(conclusion.get("overallSentiment", "No overall sentiment available."))
-        st.write("**Key Factors**")
-        for factor in conclusion.get("keyFactors", []):
-            st.write(f"- {factor}")
-        st.write("**Reputation Impact**")
-        st.write(conclusion.get("reputationImpact", "No reputation impact information available."))
+        # Display Overall Insights
+        st.write("### Overall Insights")
+        for insight in report_data.get("overall_insights", []):
+            st.write(f"- {insight}")
 
         # Display Recommendations
-        st.write("**Recommendations**")
+        st.write("### Recommendations")
         recommendations = report_data.get("recommendations", [])
         for rec in recommendations:
-            st.write(f"- {rec['suggestion']}: {rec['rationale']}")
+            st.write(f"- **{rec}**")
 
     except (json.JSONDecodeError, KeyError, AttributeError):
         st.error("Error parsing the JSON-formatted report. Please ensure the data format is correct.")
