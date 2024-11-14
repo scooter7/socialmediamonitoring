@@ -164,10 +164,12 @@ def display_formatted_report(brand_name, result):
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
     if mentions_output:
         st.write("## Tool Output:")
-        for mention in parse_tool_output(mentions_output):
-            st.markdown(f"**Title**: {mention['title']}")
-            st.markdown(f"[**Link**]({mention['link']})")
-            st.markdown(f"**Snippet**: {mention['snippet']}")
+        # Display each mention in the exact format requested
+        parsed_mentions = parse_tool_output(mentions_output)
+        for mention in parsed_mentions:
+            st.write(f"**Title**: {mention['title']}")
+            st.write(f"**Link**: {mention['link']}")
+            st.write(f"**Snippet**: {mention['snippet']}")
             st.write("---")  # Separator between each mention
     else:
         st.write("No online mentions available.")
