@@ -51,16 +51,32 @@ def analyze_sentiment_by_platform(mentions):
         sentiment_results[platform] = platform_sentiments
     return sentiment_results
 
-# Display sentiment charts per platform
+import numpy as np
+
+# Display sentiment charts per platform with NaN handling
 def display_sentiment_charts(sentiment_results):
     for platform, sentiments in sentiment_results.items():
         st.subheader(f"Sentiment Distribution on {platform}")
-        labels = ['Positive', 'Negative', 'Neutral']
-        sizes = [sentiments["positive"], sentiments["negative"], sentiments["neutral"]]
         
+        # Handle NaN by converting values to 0 if NaN
+        positive = sentiments.get("positive", 0) or 0
+        negative = sentiments.get("negative", 0) or 0
+        neutral = sentiments.get("neutral", 0) or 0
+
+        # Check for total mentions to prevent division by zero
+        total_mentions = positive + negative + neutral
+        if total_mentions == 0:
+            st.write(f"No sentiment data available for {platform}.")
+            continue
+
+        # Prepare sizes and labels for pie chart
+        labels = ['Positive', 'Negative', 'Neutral']
+        sizes = [positive, negative, neutral]
+
+        # Create pie chart
         fig, ax = plt.subplots()
         ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
-        ax.axis('equal')
+        ax.axis('equal')  # Equal aspect ratio ensures the pie chart is circular.
         st.pyplot(fig)
 
 # JSON parsing with error handling
