@@ -131,12 +131,18 @@ def display_formatted_report(brand_name, result):
     st.title(f"Social Media and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
+    # Display Debugging Data to Trace Output Structure
+    st.write("Debug: Result Keys")
+    st.write(list(result.keys()))
+
     # Section 1: Research Findings
     research_key = "Research DMACC and summarize online presence and activities."
     if research_key in result:
         st.subheader("1. Research Findings")
         research_data = result.get(research_key, {}).get("raw_output", "No research findings available.")
         st.write(research_data)
+    else:
+        st.write("No research findings available.")
 
     # Section 2: Social Media Mentions
     mentions_key = "Monitor social media platforms for mentions of 'DMACC'."
@@ -144,6 +150,8 @@ def display_formatted_report(brand_name, result):
         st.subheader("2. Social Media Mentions")
         mentions_data = result.get(mentions_key, {}).get("raw_output", "No social media mentions available.")
         st.write(mentions_data)
+    else:
+        st.write("No social media mentions available.")
 
     # Section 3: Sentiment Analysis
     sentiment_key = "Analyze sentiment of the social media mentions about DMACC."
@@ -162,6 +170,8 @@ def display_formatted_report(brand_name, result):
             ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
             ax.axis('equal')
             st.pyplot(fig)
+    else:
+        st.write("No sentiment analysis available.")
 
     # Section 4: Themes Identified
     st.subheader("4. Key Themes Identified")
@@ -174,17 +184,21 @@ def display_formatted_report(brand_name, result):
                 st.write(f"Description: {theme['description']}")
         else:
             st.write("No themes identified.")
+    else:
+        st.write("No themes identified.")
 
     # Section 5: Recommendations
+    st.subheader("5. Recommendations")
     recommendations_key = themes_key
     if recommendations_key in result:
-        st.subheader("5. Recommendations")
         recommendations = json.loads(result[recommendations_key]["raw_output"]).get("report", {}).get("recommendations", [])
         if recommendations:
             for recommendation in recommendations:
                 st.write(f"- **{recommendation}**")
         else:
             st.write("No recommendations available.")
+    else:
+        st.write("No recommendations available.")
 
 # Streamlit app interface
 st.title("Social Media Monitoring and Sentiment Analysis")
