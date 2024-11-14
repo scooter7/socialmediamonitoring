@@ -32,7 +32,7 @@ def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
         goal=f"Research and gather information about {brand_name} from various sources",
-        backstory="Expert researcher adept at finding relevant information.",
+        backstory="You are an expert researcher with a knack for finding relevant information quickly.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -42,7 +42,7 @@ def create_agents(brand_name, llm):
     social_media_monitor = Agent(
         role="Social Media Monitor",
         goal=f"Monitor social media platforms for mentions of {brand_name}",
-        backstory="Specializes in monitoring social media and detecting trends.",
+        backstory="Experienced social media analyst with keen eyes for trends and mentions.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
@@ -52,7 +52,7 @@ def create_agents(brand_name, llm):
     sentiment_analyzer = Agent(
         role="Sentiment Analyzer",
         goal=f"Analyze the sentiment of social media mentions about {brand_name}",
-        backstory="Expert in sentiment analysis and natural language processing.",
+        backstory="Expert in natural language processing and sentiment analysis.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
@@ -60,8 +60,8 @@ def create_agents(brand_name, llm):
     )
     report_generator = Agent(
         role="Report Generator",
-        goal=f"Generate a JSON-formatted report based on the analysis of {brand_name}",
-        backstory="Experienced in data analysis and creating readable reports.",
+        goal=f"Generate comprehensive JSON-formatted reports based on the analysis of {brand_name}",
+        backstory="Data analyst and report writer, adept at presenting insights clearly.",
         verbose=True,
         allow_delegation=False,
         llm=llm,
@@ -69,7 +69,7 @@ def create_agents(brand_name, llm):
     )
     return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
 
-# Define tasks with CrewAI and set JSON output
+# Define tasks with CrewAI and ensure JSON output for the final task
 def create_tasks(brand_name, agents):
     research_task = Task(
         description=f"Research {brand_name} and provide a summary of their online presence.",
@@ -87,10 +87,10 @@ def create_tasks(brand_name, agents):
         expected_output="Sentiment breakdown and notable themes."
     )
     report_generation_task = Task(
-        description=f"Generate a JSON-formatted report about {brand_name} based on the research and sentiment analysis.",
+        description=f"Generate a comprehensive report about {brand_name} based on the research and sentiment analysis.",
         agent=agents[3],
         expected_output="Detailed report in JSON format including insights and recommendations.",
-        output_json=True  # Ensure output is in JSON format
+        output_format="json"  # Ensuring the final output is in JSON format
     )
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
@@ -108,7 +108,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 
     for attempt in range(max_retries):
         try:
-            result = crew.kickoff().json()  # Retrieve the JSON output
+            result = crew.kickoff().json()  # Ensure JSON output is captured
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
