@@ -27,7 +27,7 @@ search_tool = SerperDevTool()
 def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
-# Create agents with crewai for research and analysis
+# Create agents with CrewAI for research and analysis
 def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
@@ -69,7 +69,7 @@ def create_agents(brand_name, llm):
     )
     return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
 
-# Define tasks with crewai
+# Define tasks with CrewAI
 def create_tasks(brand_name, agents):
     research_task = Task(
         description=f"Research {brand_name} and provide a summary of their online presence.",
@@ -89,8 +89,7 @@ def create_tasks(brand_name, agents):
     report_generation_task = Task(
         description=f"Generate a comprehensive report about {brand_name}.",
         agent=agents[3],
-        expected_output="Detailed report including insights and recommendations.",
-        output_json=True  # Ensure output is in JSON format
+        expected_output="Detailed report including insights and recommendations."
     )
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
@@ -108,7 +107,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 
     for attempt in range(max_retries):
         try:
-            result = crew.kickoff().json()
+            result = crew.kickoff().json()  # Get the JSON output directly
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
