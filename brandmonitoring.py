@@ -127,70 +127,44 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Function to parse and display online mentions data in a structured format for Section 2
-def parse_and_display_mentions(report_output):
-    try:
-        # Load JSON data from the CrewAI response
-        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+# Function to display mentions in Section 2 from parsed JSON structure
+def display_mentions(mentions_data):
+    found_data = False
+    for mention in mentions_data:
+        title = mention.get("title", "No title available")
+        link = mention.get("link", "No link available")
+        snippet = mention.get("snippet", "No snippet available")
         
-        # Search for potential mentions in JSON data by navigating through all nested keys
-        st.write("### Online Mentions and Sentiment Analysis")
-        found_data = False
-        
-        # A recursive function to search for `title`, `link`, and `snippet` in any nested structure
-        def search_mentions(data):
-            nonlocal found_data
-            if isinstance(data, dict):
-                # If the dict contains title, link, and snippet, we assume it’s a mention
-                if "title" in data and "link" in data and "snippet" in data:
-                    st.write(f"**Title:** {data['title']}")
-                    st.write(f"**Link:** {data['link']}")
-                    st.write(f"**Snippet:** {data['snippet']}")
-                    st.write("---")
-                    found_data = True
-                # Otherwise, recursively search nested dictionaries
-                for key, value in data.items():
-                    search_mentions(value)
-            elif isinstance(data, list):
-                # If it's a list, check each item
-                for item in data:
-                    search_mentions(item)
-        
-        # Start searching mentions within parsed JSON data
-        search_mentions(report_data)
-        
-        if not found_data:
-            st.write("No online mentions or sentiment data available.")
-            
-    except json.JSONDecodeError:
-        st.error("Error parsing JSON data. Please check the JSON format.")
-
-# Display formatted report based on task outputs
-def display_formatted_report(brand_name, result):
-    st.header(f"Online and Sentiment Analysis Report for {brand_name}")
-    st.write("---")
-
-    # Extract task outputs and display Section 1: Research Findings
-    st.subheader("1. Research Findings")
-    research_output = result.tasks_output[0].raw if result.tasks_output[0] else "No data available"
-    st.write(research_output)
-
-    # Section 2: Online Mentions and Sentiment Analysis - structured display for clarity
-    st.subheader("2. Online Mentions and Sentiment Analysis")
-    report_output = result.tasks_output[3].raw if result.tasks_output[3] else "No report data available"
-    if report_output:
-        parse_and_display_mentions(report_output)
-    else:
+        st.write(f"**Title:** {title}")
+        st.write(f"**Link:** {link}")
+        st.write(f"**Snippet:** {snippet}")
+        st.write("---")
+        found_data = True
+    
+    if not found_data:
         st.write("No online mentions or sentiment data available.")
 
-    # Section 3: Recommendations
-    st.subheader("3. Recommendations")
-    report_data = json.loads(report_output.strip('```json\n').strip('\n```')) if report_output else {}
-    recommendations = report_data.get('report', {}).get('recommendations', [])
-    if recommendations:
-        for recommendation in recommendations:
-            st.write(f"- {recommendation}")
-    else:
-        st.write("No recommendations available.")
+# Main function to parse and display the entire report
+def parse_and_display_report(report_output):
+    try:
+        # Parse the JSON data
+        report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+
+        # Display Online Mentions and Sentiment Analysis
+        st.subheader("2. Online Mentions and Sentiment Analysis")
+        
+        # Look for specific structure in tool outputs for title, link, snippet
+        mentions_data = []
+        for tool_output in report_data.get("tool_outputs", []):
+            # Collect mentions if the output contains title, link, and snippet
+            if all(key in tool_output for key in ["title", "link", "snippet"]):
+                mentions_data.append(tool_output)
+        
+        # Display collected mentions
+        display_mentions(mentions_data)
+
+    except json.JSONDecodeError:
+        st.error("Error parsing JSON data. Please check the JSON format.")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
