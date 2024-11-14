@@ -7,3 +7,4 @@ crewai-tools
 langchain-openai
 matplotlib
 pysqlite3-binary
+numpy
