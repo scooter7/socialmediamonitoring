@@ -10,8 +10,8 @@ from crewai import Agent, Task, Crew
 from crewai_tools import SerperDevTool
 from langchain_openai import ChatOpenAI
 import openai
-import matplotlib.pyplot as plt
 import json
+import re
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,9 +23,9 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 # Initialize social media search tool
 search_tool = SerperDevTool()
 
-# Function to create LLM
+# Function to create LLM using GPT-4o-mini
 def create_llm():
-    return ChatOpenAI(model="gpt-4")
+    return ChatOpenAI(model="gpt-4o-mini")
 
 # Enhanced function to fetch social media mentions and news with error handling
 def fetch_mentions(brand_name):
@@ -33,8 +33,8 @@ def fetch_mentions(brand_name):
     mentions = {}
     for source in sources:
         try:
-            # Attempt to fetch mentions for each platform
             result = search_tool.search(brand_name)
+            st.write(f"Fetching mentions from {source}: {result}")  # Debug: Show fetched mentions
             mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
@@ -43,11 +43,12 @@ def fetch_mentions(brand_name):
 
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
-    entries = re.findall(r"Title: (.+?)\n\nLink: (.+?)\n\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
+    entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
+    st.write(f"Parsed mentions: {parsed_results}")  # Debug: Show parsed mentions
     return parsed_results
 
-# Create agents with crewai for research and analysis
+# Create agents with CrewAI for research and analysis
 def create_agents(brand_name, llm):
     researcher = Agent(
         role="Social Media Researcher",
@@ -162,7 +163,18 @@ def display_formatted_report(brand_name, result):
     # Section 2: Social Media Mentions
     st.subheader("2. Social Media Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    st.write(mentions_output)
+    try:
+        parsed_mentions = parse_tool_output(mentions_output)
+        if parsed_mentions:
+            for mention in parsed_mentions:
+                st.write(f"**Title:** {mention['title']}")
+                st.write(f"**Link:** [Read more]({mention['link']})")
+                st.write(f"**Snippet:** {mention['snippet']}")
+                st.write("---")
+        else:
+            st.write("No social media mentions available.")
+    except Exception as e:
+        st.error(f"Error displaying mentions: {e}")
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
@@ -173,22 +185,27 @@ def display_formatted_report(brand_name, result):
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
     
-    # Try to parse JSON data from the report generator output
+    # Display JSON data if available
     try:
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         themes = report_data.get('notable_themes', {})
         recommendations = report_data.get('conclusion', {}).get('recommendations', [])
 
         # Display themes
-        st.write("**Notable Themes:**")
-        for theme_key, theme_info in themes.items():
-            st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
+        if themes:
+            st.write("**Notable Themes:**")
+            for theme_key, theme_info in themes.items():
+                st.write(f"- **{theme_key.replace('_', ' ').title()}**: {theme_info['description']}")
+        else:
+            st.write("No notable themes available.")
 
         # Display recommendations
-        st.write("**Recommendations:**")
-        for rec in recommendations:
-            st.write(f"- {rec['recommendation']}")
-
+        if recommendations:
+            st.write("**Recommendations:**")
+            for rec in recommendations:
+                st.write(f"- {rec['recommendation']}")
+        else:
+            st.write("No recommendations available.")
     except (json.JSONDecodeError, KeyError) as e:
         st.write("Error parsing the JSON-formatted report.")
         st.write(report_output)
