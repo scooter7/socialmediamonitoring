@@ -148,6 +148,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display formatted report based on task outputs
+# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -188,8 +189,10 @@ def display_formatted_report(brand_name, result):
     # Display JSON data if available
     try:
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
-        themes = report_data.get('notable_themes', {})
-        recommendations = report_data.get('conclusion', {}).get('recommendations', [])
+        
+        # Safely extract themes and recommendations as dictionaries
+        themes = report_data.get('notable_themes', {}) if isinstance(report_data.get('notable_themes'), dict) else {}
+        recommendations = report_data.get('conclusion', {}).get('recommendations', []) if isinstance(report_data.get('conclusion', {}).get('recommendations'), list) else []
 
         # Display themes
         if themes:
@@ -206,7 +209,7 @@ def display_formatted_report(brand_name, result):
                 st.write(f"- {rec['recommendation']}")
         else:
             st.write("No recommendations available.")
-    except (json.JSONDecodeError, KeyError) as e:
+    except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.write("Error parsing the JSON-formatted report.")
         st.write(report_output)
 
