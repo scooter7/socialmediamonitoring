@@ -146,7 +146,6 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display formatted report based on task outputs
-# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -162,20 +161,69 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    if mentions_output:
-        st.write("## Tool Output:")
-        for mention in parse_tool_output(mentions_output):
-            st.markdown(f"**Title**: {mention['title']}")
-            st.markdown(f"[**Link**]({mention['link']})")
-            st.markdown(f"**Snippet**: {mention['snippet']}")
-            st.write("---")  # Separator between each mention
+    parsed_mentions = parse_tool_output(mentions_output)
+    if parsed_mentions:
+        for mention in parsed_mentions:
+            st.markdown(f"**Title:** {mention['title']}")
+            st.markdown(f"**Link:** [Read more]({mention['link']})")
+            st.markdown(f"**Snippet:** {mention['snippet']}")
+            st.markdown("---")
     else:
         st.write("No online mentions available.")
 
-    # Section 3: Sentiment Analysis
+    # Section 3: Sentiment Analysis (Concise Overview)
     st.subheader("3. Sentiment Analysis")
     sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
     st.write(sentiment_output)
+
+    # Section 4: Key Themes and Recommendations (only if data is available)
+    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
+    try:
+        # Clean JSON output and parse it
+        report_output_cleaned = re.sub(r'```(?:json)?\n|\n```', '', report_output)
+        report_data = json.loads(report_output_cleaned)
+
+        # Access the 'report' section in the JSON data
+        report = report_data.get("report", {})
+
+        # Check if there's data in Key Insights or Recommendations
+        key_insights = report.get("key_insights", {})
+        recommendations = report.get("recommendations", [])
+
+        if key_insights or recommendations:
+            # Only display this section if either Key Insights or Recommendations are available
+            st.subheader("4. Key Themes and Recommendations")
+
+            # Detailed Sentiment Distribution (If metrics are provided separately from the summary)
+            sentiment_analysis = report.get("sentiment_analysis", {})
+            if sentiment_analysis:
+                st.write("**Sentiment Distribution (Detailed Metrics)**")
+                st.write(f"- Positive Mentions: {sentiment_analysis.get('positive_mentions', 'N/A')}")
+                st.write(f"- Neutral Mentions: {sentiment_analysis.get('neutral_mentions', 'N/A')}")
+                st.write(f"- Negative Mentions: {sentiment_analysis.get('negative_mentions', 'N/A')}")
+                st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
+
+            # Display Key Insights only if available
+            if key_insights:
+                st.write("**Key Insights**")
+                for key, insight in key_insights.items():
+                    st.write(f"- **{key.replace('_', ' ').title()}**")
+                    st.write(f"  - Description: {insight.get('description', 'No description available')}")
+                    st.write(f"  - Feedback: {insight.get('feedback', 'No feedback available')}")
+
+            # Display Recommendations only if available
+            if recommendations:
+                st.write("**Recommendations**")
+                for recommendation in recommendations:
+                    st.write(f"- **{recommendation.get('action', 'No action specified')}**")
+                    st.write(f"  - {recommendation.get('details', 'No additional details provided')}")
+
+    except (json.JSONDecodeError, KeyError, AttributeError) as e:
+        st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
+        st.write("Debugging Information:")
+        st.write(f"Raw report output: {report_output}")
+        st.write(f"Cleaned report output: {report_output_cleaned}")
+        st.write(f"Error details: {str(e)}")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
