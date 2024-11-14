@@ -230,6 +230,9 @@ def generate_recommendations(themes):
     return recommendations
 
 # Display formatted report based on task outputs
+import json
+
+# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Social Media and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -247,11 +250,15 @@ def display_formatted_report(brand_name, result):
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
     st.write(mentions_output)
 
+    # Parse mentions output as JSON, or use default structure if parsing fails
+    try:
+        mentions = json.loads(mentions_output)
+    except (json.JSONDecodeError, TypeError):
+        st.warning("Mentions data is not in JSON format. Using default empty structure.")
+        mentions = {"Twitter": [], "Facebook": [], "Reddit": [], "Quora": [], "News": []}
+
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    
-    # Directly use mentions data from the social media task output
-    mentions = task_outputs[1].raw if task_outputs[1] else {"Twitter": [], "Facebook": [], "Reddit": [], "Quora": [], "News": []}
     sentiment_results = analyze_sentiment_by_platform(mentions)
     display_sentiment_charts(sentiment_results)
 
