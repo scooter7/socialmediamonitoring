@@ -151,7 +151,26 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
+import re
 import json
+
+# Function to parse and display social media mention information from unstructured text
+def parse_mentions_text(raw_text):
+    # Match common mention fields in the raw text for cleaner display
+    mention_blocks = re.findall(
+        r"(?:\- \*\*|\*\*)?(Counts|Platforms|Notable Mentions|Hashtags):\s+(.*?)(?=\n\n|\n\-\-|\Z)",
+        raw_text,
+        re.DOTALL
+    )
+    
+    # Process each identified block and structure it for display
+    structured_mentions = {}
+    for block_type, content in mention_blocks:
+        # Clean up whitespace and bullet points
+        content = re.sub(r"(\n\s*\-|\n|\s{2,})", " ", content).strip()
+        structured_mentions[block_type] = content
+
+    return structured_mentions
 
 # Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
@@ -169,18 +188,17 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    try:
-        parsed_mentions = parse_tool_output(mentions_output)
-        if parsed_mentions:
-            for mention in parsed_mentions:
-                st.write(f"**Title:** {mention['title']}")
-                st.write(f"**Link:** [Read more]({mention['link']})")
-                st.write(f"**Snippet:** {mention['snippet']}")
-                st.write("---")
+    
+    # Parse the unstructured text for online mentions
+    if mentions_output:
+        structured_mentions = parse_mentions_text(mentions_output)
+        if structured_mentions:
+            for mention_type, content in structured_mentions.items():
+                st.write(f"**{mention_type}:** {content}")
         else:
             st.write("No online mentions available.")
-    except Exception as e:
-        st.error(f"Error displaying mentions: {e}")
+    else:
+        st.write("No online mentions available.")
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
@@ -190,28 +208,22 @@ def display_formatted_report(brand_name, result):
     # Section 4: Key Themes and Recommendations
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
-
+    
     try:
-        # Clean up the JSON string and parse it
+        # Parse JSON and display themes and recommendations if available
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         
-        # Safely extract notable themes and recommendations
-        themes = report_data.get('social_media_analysis', {}).get('notable_themes', {})
-        recommendations = report_data.get('social_media_analysis', {}).get('recommendations', {})
+        # Extract notable themes and recommendations
+        themes = report_data.get('UniversityOfOregonSentimentAnalysis', {}).get('KeyInsights', {}).get('NotableThemes', [])
+        recommendations = report_data.get('UniversityOfOregonSentimentAnalysis', {}).get('Recommendations', {})
 
         # Display notable themes
         if themes:
             st.write("**Notable Themes:**")
-            for theme_key, theme_info in themes.items():
-                description = theme_info.get("description", "No description available")
-                impact = theme_info.get("impact", "No impact specified")
-                hashtags = theme_info.get("hashtags", [])
-                
-                st.write(f"- **{theme_key.replace('_', ' ').title()}**")
-                st.write(f"  - Description: {description}")
-                st.write(f"  - Impact: {impact}")
-                st.write(f"  - Hashtags: {' '.join(hashtags) if hashtags else 'None'}")
-                st.write("---")
+            for theme in themes:
+                theme_title = theme.get("Theme", "No Theme Title")
+                insight = theme.get("Insight", "No Insight Available")
+                st.write(f"- **{theme_title}**: {insight}")
         else:
             st.write("No notable themes available.")
 
@@ -228,6 +240,26 @@ def display_formatted_report(brand_name, result):
         st.write(report_output)
     except Exception as e:
         st.error(f"Unexpected error: {e}")
+
+# Streamlit app interface
+st.title("Online and Sentiment Analysis Report")
+st.write("Analyze a brand or topic with integrated online monitoring, sentiment analysis, and report generation.")
+
+# User input for brand or topic
+brand_name = st.text_input("Enter the Brand or Topic Name")
+
+# Run the analysis on button click
+if st.button("Start Analysis"):
+    if brand_name:
+        st.write("Starting online monitoring and sentiment analysis...")
+        result = run_social_media_monitoring(brand_name)
+        
+        if result:
+            display_formatted_report(brand_name, result)
+        else:
+            st.error("Failed to generate the report. Please try again.")
+    else:
+        st.error("Please enter a brand or topic name to proceed.")
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
