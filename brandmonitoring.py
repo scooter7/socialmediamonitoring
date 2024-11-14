@@ -126,15 +126,16 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Function to parse and display online mentions data in a structured format
+# Function to parse and display online mentions data in a structured format for Section 2
 def parse_and_display_mentions(report_output):
     try:
+        # Load the JSON output from CrewAI, assuming it's within a code block format
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
         
-        # Extract and display online mentions if available
-        mentions_data = report_data.get('mentions', [])
+        # Check if 'mentions' data is present
+        mentions_data = report_data.get('report', {}).get('online_mentions', [])
         if mentions_data:
-            st.write("### Online Mentions")
+            st.write("### Online Mentions and Sentiment Analysis")
             for mention in mentions_data:
                 title = mention.get('title', 'No Title')
                 link = mention.get('link', 'No Link')
@@ -142,9 +143,9 @@ def parse_and_display_mentions(report_output):
                 st.write(f"**Title:** {title}")
                 st.write(f"**Link:** {link}")
                 st.write(f"**Snippet:** {snippet}")
-                st.write("---")
+                st.write("---")  # Separate each mention with a line
         else:
-            st.write("No online mentions available.")
+            st.write("No online mentions or sentiment data available.")
             
     except json.JSONDecodeError:
         st.error("Error parsing JSON data. Please check the JSON format.")
@@ -154,17 +155,14 @@ def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
-    # Extract task outputs
-    task_outputs = result.tasks_output
-
-    # Section 1: Research Findings
+    # Extract task outputs and display Section 1: Research Findings
     st.subheader("1. Research Findings")
-    research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
+    research_output = result.tasks_output[0].raw if result.tasks_output[0] else "No data available"
     st.write(research_output)
 
-    # Section 2: Online Mentions and Sentiment Analysis
+    # Section 2: Online Mentions and Sentiment Analysis - clean and focused for readability
     st.subheader("2. Online Mentions and Sentiment Analysis")
-    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
+    report_output = result.tasks_output[3].raw if result.tasks_output[3] else "No report data available"
     if report_output:
         parse_and_display_mentions(report_output)
     else:
