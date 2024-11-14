@@ -131,7 +131,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Display formatted report based on task outputs
+# Enhanced display_formatted_report function
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -159,11 +159,14 @@ def display_formatted_report(brand_name, result):
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
 
     try:
-        # Remove JSON formatting and parse
-        report_output = report_output.strip("```json\n").strip("\n```")
-        report_data = json.loads(report_output)["report"]
+        # Validate JSON format before parsing
+        if report_output.startswith("```json"):
+            report_output = report_output.strip("```json\n").strip("\n```")
 
-        # Display structured report
+        # Parse the JSON content
+        report_data = json.loads(report_output).get("report", {})
+
+        # Display structured report sections
         st.write("### Sentiment Distribution")
         sentiment_distribution = report_data.get("sentiment_distribution", {})
         for sentiment, details in sentiment_distribution.items():
@@ -177,13 +180,13 @@ def display_formatted_report(brand_name, result):
         st.write("### Notable Themes")
         notable_themes = report_data.get("notable_themes", [])
         for theme in notable_themes:
-            st.write(f"- **{theme['theme']}**: {theme['description']}")
+            st.write(f"- **{theme.get('theme', 'Unknown Theme')}**: {theme.get('description', 'No description available')}")
 
-        # Display Notable Posts with Title, Link, and Snippet
+        # Display Notable Posts
         st.write("### Notable Posts")
         notable_posts = report_data.get("notable_posts", [])
         for post in notable_posts:
-            st.write(f"- **[{post['title']}]({post['link']})**: {post['snippet']}")
+            st.write(f"- **[{post.get('title', 'No Title')}]({post.get('link', '#')})**: {post.get('snippet', 'No snippet available')}")
 
         # Display Recommendations
         st.write("### Recommendations")
@@ -191,8 +194,9 @@ def display_formatted_report(brand_name, result):
         for rec in recommendations:
             st.write(f"- {rec}")
 
-    except (json.JSONDecodeError, KeyError, AttributeError):
+    except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please ensure the data format is correct.")
+        st.write(f"Details: {str(e)}")  # Optional: Show error details for debugging
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
