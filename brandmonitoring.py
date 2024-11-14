@@ -89,7 +89,8 @@ def create_tasks(brand_name, agents):
     report_generation_task = Task(
         description=f"Generate a comprehensive report about {brand_name}.",
         agent=agents[3],
-        expected_output="Detailed report including insights and recommendations."
+        expected_output="Detailed report including insights and recommendations.",
+        output_json=True  # Ensuring JSON format for the final output
     )
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
