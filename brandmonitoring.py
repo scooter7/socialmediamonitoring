@@ -32,8 +32,12 @@ def fetch_mentions(brand_name):
     sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
     mentions = {}
     for source in sources:
-        # Placeholder for actual API calls or search tool usage
-        mentions[source] = search_tool.search(f"{brand_name} site:{source.lower()}.com")
+        try:
+            # Assuming `SerperDevTool` uses a `.run()` method instead of `.search()`
+            mentions[source] = search_tool.run(f"{brand_name} site:{source.lower()}.com")
+        except AttributeError:
+            st.error(f"The search tool does not support searching with '{source}'.")
+            mentions[source] = []
     return mentions
 
 # Analyze sentiment by platform
