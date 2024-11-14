@@ -126,7 +126,6 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Function to parse and display online mentions data in a structured format for Section 2
 # Function to display mentions in Section 2 from parsed JSON structure
 def display_mentions(mentions_data):
     found_data = False
@@ -144,7 +143,7 @@ def display_mentions(mentions_data):
     if not found_data:
         st.write("No online mentions or sentiment data available.")
 
-# Main function to parse and display the entire report
+# Function to parse and display the report content
 def parse_and_display_report(report_output):
     try:
         # Parse the JSON data
@@ -165,6 +164,24 @@ def parse_and_display_report(report_output):
 
     except json.JSONDecodeError:
         st.error("Error parsing JSON data. Please check the JSON format.")
+
+# Function to display the full report in sections
+def display_formatted_report(brand_name, report_output):
+    st.header(f"Online and Sentiment Analysis Report for {brand_name}")
+    st.write("---")
+
+    # 1. Research Findings
+    st.subheader("1. Research Findings")
+    research_summary = "Summary of recent activities, online presence, etc."
+    st.write(research_summary)
+
+    # 2. Online Mentions and Sentiment Analysis
+    parse_and_display_report(report_output)
+
+    # 3. Recommendations
+    st.subheader("3. Recommendations")
+    recommendations = "No recommendations available."
+    st.write(recommendations)
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
