@@ -172,49 +172,6 @@ def display_formatted_report(brand_name, result):
     sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
     st.write(sentiment_output)
 
-    # Section 4: Key Themes and Recommendations
-    st.subheader("4. Key Themes and Recommendations")
-
-    report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
-    try:
-        # Clean JSON output and parse it
-        report_output_cleaned = re.sub(r'```(?:json)?\n|\n```', '', report_output)
-        report_data = json.loads(report_output_cleaned)
-
-        # Access the 'report' section in the JSON data
-        report = report_data.get("report", {})
-
-        # Sentiment Distribution
-        sentiment_distribution = report.get("sentiment_distribution", {})
-        if sentiment_distribution:
-            st.write("**Sentiment Distribution (Detailed Metrics)**")
-            st.write(f"- Positive Mentions: {sentiment_distribution.get('positive', 'N/A')}%")
-            st.write(f"- Negative Mentions: {sentiment_distribution.get('negative', 'N/A')}%")
-            st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral', 'N/A')}%")
-
-        # Key Insights
-        key_insights = report.get("key_insights", [])
-        if isinstance(key_insights, list):
-            st.write("**Key Insights**")
-            for insight in key_insights:
-                st.write(f"- **{insight.get('theme', 'Unknown Theme')}**")
-                st.write(f"  - Description: {insight.get('description', 'No description available')}")
-
-        # Recommendations
-        recommendations = report.get("recommendations", [])
-        if isinstance(recommendations, list):
-            st.write("**Recommendations**")
-            for recommendation in recommendations:
-                st.write(f"- **{recommendation.get('recommendation', 'No recommendation specified')}**")
-                st.write(f"  - Description: {recommendation.get('description', 'No description available')}")
-
-    except (json.JSONDecodeError, KeyError, AttributeError) as e:
-        st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
-        st.write("Debugging Information:")
-        st.write(f"Raw report output: {report_output}")
-        st.write(f"Cleaned report output: {report_output_cleaned}")
-        st.write(f"Error details: {str(e)}")
-
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
 st.write("Analyze a brand or topic with integrated online monitoring, sentiment analysis, and report generation.")
