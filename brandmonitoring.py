@@ -4,7 +4,6 @@ sys.modules["sqlite3"] = pysqlite3
 
 import os
 import time
-import re
 import streamlit as st
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew
@@ -13,12 +12,7 @@ from langchain_openai import ChatOpenAI
 import openai
 import matplotlib.pyplot as plt
 import json
-from collections import Counter
-from sklearn.feature_extraction.text import CountVectorizer
-import nltk
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-
-nltk.download('vader_lexicon')
+import re
 
 # Load environment variables from .env file
 load_dotenv()
@@ -27,9 +21,8 @@ load_dotenv()
 os.environ["SERPER_API_KEY"] = st.secrets["SERPER_API_KEY"]
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# Initialize social media search tool and sentiment analyzer
+# Initialize social media search tool
 search_tool = SerperDevTool()
-sentiment_analyzer = SentimentIntensityAnalyzer()
 
 # Function to create LLM
 def create_llm():
@@ -41,8 +34,8 @@ def fetch_mentions(brand_name):
     mentions = {}
     for source in sources:
         try:
-            # Attempt to fetch mentions for each platform using `_run` method
-            result = search_tool._run(brand_name)
+            # Attempt to fetch mentions for each platform
+            result = search_tool.search(brand_name)
             mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
@@ -51,8 +44,10 @@ def fetch_mentions(brand_name):
 
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
-    entries = re.findall(r"Title: (.+?)\n\nLink: (.+?)\n\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
-    return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
+    # Match title, link, and snippet for each mention
+    entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
+    parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
+    return parsed_results
 
 # Create agents with crewai for research and analysis
 def create_agents(brand_name, llm):
@@ -105,25 +100,25 @@ def create_tasks(brand_name, agents):
     research_task = Task(
         description=f"Research {brand_name} and provide a summary of their online presence, key information, and recent activities.",
         agent=agents[0],
-        expected_output="A structured summary containing: \n1. Brief overview of {brand_name}\n2. Key online platforms and follower counts\n3. Recent notable activities or campaigns\n4. Main products or services\n5. Any recent news or controversies"
+        expected_output="A structured summary with key insights on recent activities, platform presence, and notable mentions."
     )
 
     monitoring_task = Task(
-        description=f"Monitor social media platforms for mentions of '{brand_name}' in the last 24 hours. Provide a summary of the mentions.",
+        description=f"Monitor social media platforms for mentions of '{brand_name}'. Provide a summary of the mentions.",
         agent=agents[1],
-        expected_output="A structured report containing: \n1. Total number of mentions\n2. Breakdown by platform (e.g., Twitter, Instagram, Facebook)\n3. Top 5 most engaging posts or mentions\n4. Any trending hashtags associated with {brand_name}\n5. Notable influencers or accounts mentioning {brand_name}"
+        expected_output="Summary of mentions including counts, platforms, notable mentions, and hashtags."
     )
 
     sentiment_analysis_task = Task(
         description=f"Analyze the sentiment of the social media mentions about {brand_name}. Categorize them as positive, negative, or neutral.",
         agent=agents[2],
-        expected_output="A sentiment analysis report containing: \n1. Overall sentiment distribution (% positive, negative, neutral)\n2. Key positive themes or comments\n3. Key negative themes or comments\n4. Any notable changes in sentiment compared to previous periods\n5. Suggestions for sentiment improvement if necessary"
+        expected_output="Sentiment distribution and notable themes."
     )
 
     report_generation_task = Task(
-        description=f"Generate a comprehensive report about {brand_name} based on the research, social media mentions, and sentiment analysis. Include key insights and recommendations.",
+        description=f"Generate a JSON-formatted report for {brand_name} based on findings.",
         agent=agents[3],
-        expected_output="A comprehensive report structured as follows: \n1. Executive Summary\n2. Brand Overview\n3. Social Media Presence Analysis\n4. Sentiment Analysis\n5. Key Insights\n6. Recommendations for Improvement\n7. Conclusion"
+        expected_output="Comprehensive report in JSON format including key insights and recommendations."
     )
 
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
@@ -169,7 +164,16 @@ def display_formatted_report(brand_name, result):
     # Section 2: Social Media Mentions
     st.subheader("2. Social Media Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    st.write(mentions_output)
+    try:
+        # Parse and display individual mentions
+        parsed_mentions = parse_tool_output(mentions_output)
+        for mention in parsed_mentions:
+            st.write(f"**Title:** {mention['title']}")
+            st.write(f"**Link:** [Read more]({mention['link']})")
+            st.write(f"**Snippet:** {mention['snippet']}")
+            st.write("---")
+    except Exception as e:
+        st.error(f"Error displaying mentions: {e}")
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
