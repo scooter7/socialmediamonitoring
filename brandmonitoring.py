@@ -136,8 +136,16 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 
     for attempt in range(max_retries):
         try:
+            # Attempt to kickoff the crew process
             result = crew.kickoff()
-            return result.tasks_output  # Return only the tasks output for display
+            
+            # Verify if the result has tasks_output and is not None or empty
+            if result and hasattr(result, "tasks_output") and result.tasks_output:
+                st.write("Crew kickoff successful. Retrieved tasks output.")
+                return result  # Returning the entire result object for later processing
+            else:
+                st.warning(f"Attempt {attempt + 1}: No tasks output found in result.")
+        
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
@@ -147,11 +155,19 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
+    st.error("All attempts failed to retrieve valid tasks output.")
+    return None
+
+# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
-    # Extract task outputs
+    # Verify result and retrieve task outputs
+    if not result or not hasattr(result, "tasks_output") or not result.tasks_output:
+        st.error("No task outputs available in result.")
+        return
+
     task_outputs = result.tasks_output
 
     # Section 1: Research Findings
@@ -182,10 +198,8 @@ def display_formatted_report(brand_name, result):
     report_output = task_outputs[3].raw if task_outputs[3] else "No report data available"
 
     try:
-        # Clean the JSON output
+        # Clean and parse JSON output
         report_output_cleaned = re.sub(r'```json|```|\n', '', report_output).strip()
-
-        # Parse the JSON structure
         report_data = json.loads(report_output_cleaned)
         st.write("Successfully parsed JSON.")
 
