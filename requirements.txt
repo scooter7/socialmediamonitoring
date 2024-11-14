@@ -8,3 +8,5 @@ langchain-openai
 matplotlib
 pysqlite3-binary
 numpy
+nltk
+scikit-learn
