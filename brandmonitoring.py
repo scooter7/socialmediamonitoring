@@ -160,10 +160,15 @@ def display_formatted_report(brand_name, result):
 
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
-    mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
     
-    # Parse and display mentions if available
-    parsed_mentions = parse_tool_output(mentions_output)
+    # Debugging output to verify raw tool output data
+    mentions_output = task_outputs[1].raw if task_outputs[1] else None
+    if mentions_output:
+        st.write("## Debug: Raw Mentions Output")
+        st.write(mentions_output)  # Display the raw output for debugging
+
+    parsed_mentions = parse_tool_output(mentions_output) if mentions_output else []
+    
     if parsed_mentions:
         for mention in parsed_mentions:
             st.markdown(f"**Title:** {mention['title']}")
