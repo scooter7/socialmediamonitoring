@@ -60,7 +60,7 @@ def create_agents(brand_name, llm):
     )
     report_generator = Agent(
         role="Report Generator",
-        goal=f"Generate comprehensive reports based on the analysis of {brand_name}",
+        goal=f"Generate a JSON-formatted report based on the analysis of {brand_name}",
         backstory="Experienced in data analysis and creating readable reports.",
         verbose=True,
         allow_delegation=False,
@@ -69,28 +69,28 @@ def create_agents(brand_name, llm):
     )
     return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
 
-# Define tasks with CrewAI
+# Define tasks with CrewAI and set JSON output
 def create_tasks(brand_name, agents):
     research_task = Task(
         description=f"Research {brand_name} and provide a summary of their online presence.",
         agent=agents[0],
-        expected_output="Structured summary with key insights on recent activities.",
+        expected_output="Structured summary with key insights on recent activities."
     )
     monitoring_task = Task(
         description=f"Monitor social media for mentions of '{brand_name}' and summarize findings.",
         agent=agents[1],
-        expected_output="Summary of mentions including counts, platforms, notable mentions.",
+        expected_output="Summary of mentions including counts, platforms, notable mentions."
     )
     sentiment_analysis_task = Task(
         description=f"Analyze the sentiment of the social media mentions about {brand_name}.",
         agent=agents[2],
-        expected_output="Sentiment breakdown and notable themes.",
+        expected_output="Sentiment breakdown and notable themes."
     )
     report_generation_task = Task(
-        description=f"Generate a comprehensive report about {brand_name}.",
+        description=f"Generate a JSON-formatted report about {brand_name} based on the research and sentiment analysis.",
         agent=agents[3],
-        expected_output="Detailed report including insights and recommendations.",
-        output_format="json"  # Ensure JSON format output
+        expected_output="Detailed report in JSON format including insights and recommendations.",
+        output_json=True  # Set JSON output explicitly
     )
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
 
