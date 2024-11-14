@@ -249,7 +249,9 @@ def display_formatted_report(brand_name, result):
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    mentions = extract_mentions_data(result)  # Extract mentions from result data if not directly available
+    
+    # Directly use mentions data from the social media task output
+    mentions = task_outputs[1].raw if task_outputs[1] else {"Twitter": [], "Facebook": [], "Reddit": [], "Quora": [], "News": []}
     sentiment_results = analyze_sentiment_by_platform(mentions)
     display_sentiment_charts(sentiment_results)
 
