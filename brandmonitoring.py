@@ -34,7 +34,7 @@ def fetch_mentions(brand_name):
     for source in sources:
         try:
             result = search_tool.search(brand_name)
-            st.write(f"Fetching mentions from {source}: {result}")  # Debug: Show fetched mentions
+            st.write(f"Raw result from {source}: {result}")  # Debug: Show raw result from search tool
             mentions[source] = parse_tool_output(result) if result else []
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
@@ -43,9 +43,12 @@ def fetch_mentions(brand_name):
 
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
+    # Debug: Show raw tool output before parsing
+    st.write("Raw tool output:", tool_output)
+    # Adjust regex to capture mentions if the format has changed
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
-    st.write(f"Parsed mentions: {parsed_results}")  # Debug: Show parsed mentions
+    st.write("Parsed mentions:", parsed_results)  # Debug: Show parsed mentions
     return parsed_results
 
 # Create agents with CrewAI for research and analysis
@@ -137,6 +140,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
     for attempt in range(max_retries):
         try:
             result = crew.kickoff()
+            st.write("Raw result from CrewAI:", result)  # Debug: Show raw CrewAI result
             return result
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -188,6 +192,7 @@ def display_formatted_report(brand_name, result):
     try:
         # Extract JSON data for themes and recommendations
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+        st.write("Raw JSON report data:", report_data)  # Debug: Show raw JSON report data
         
         themes = report_data.get('notable_themes', {})
         recommendations = report_data.get('conclusion', {}).get('recommendations', [])
