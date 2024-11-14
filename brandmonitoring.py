@@ -131,36 +131,46 @@ def parse_and_display_raw_data(report_output):
     try:
         # Parse JSON and retrieve main sections
         report_data = json.loads(report_output.strip('```json\n').strip('\n```'))
+        
+        # Extract sentiment and display if available
         sentiment_data = report_data.get('report', {}).get('sentiment_analysis', {})
         
-        # Display sentiment details under each category
         st.write("### Positive Sentiment")
         pos_sentiment = sentiment_data.get('positive_sentiment', {})
-        st.write(f"**Percentage:** {pos_sentiment.get('percentage', 'No Data')}%")
-        st.write(f"**Examples:** {', '.join(pos_sentiment.get('examples', ['No examples available']))}")
-        st.write(f"**Themes:** {', '.join(pos_sentiment.get('themes', ['No themes available']))}")
-        
+        if pos_sentiment:
+            st.write(f"**Percentage:** {pos_sentiment.get('percentage', 'No Data')}%")
+            st.write(f"**Examples:** {', '.join(pos_sentiment.get('examples', []))}")
+            st.write(f"**Themes:** {', '.join(pos_sentiment.get('themes', []))}")
+
         st.write("### Negative Sentiment")
         neg_sentiment = sentiment_data.get('negative_sentiment', {})
-        st.write(f"**Percentage:** {neg_sentiment.get('percentage', 'No Data')}%")
-        st.write(f"**Examples:** {', '.join(neg_sentiment.get('examples', ['No examples available']))}")
-        st.write(f"**Themes:** {', '.join(neg_sentiment.get('themes', ['No themes available']))}")
-        
+        if neg_sentiment:
+            st.write(f"**Percentage:** {neg_sentiment.get('percentage', 'No Data')}%")
+            st.write(f"**Examples:** {', '.join(neg_sentiment.get('examples', []))}")
+            st.write(f"**Themes:** {', '.join(neg_sentiment.get('themes', []))}")
+
         st.write("### Neutral Sentiment")
         neu_sentiment = sentiment_data.get('neutral_sentiment', {})
-        st.write(f"**Percentage:** {neu_sentiment.get('percentage', 'No Data')}%")
-        st.write(f"**Examples:** {', '.join(neu_sentiment.get('examples', ['No examples available']))}")
-        st.write(f"**Themes:** {', '.join(neu_sentiment.get('themes', ['No themes available']))}")
+        if neu_sentiment:
+            st.write(f"**Percentage:** {neu_sentiment.get('percentage', 'No Data')}%")
+            st.write(f"**Examples:** {', '.join(neu_sentiment.get('examples', []))}")
+            st.write(f"**Themes:** {', '.join(neu_sentiment.get('themes', []))}")
         
-        # Display notable themes
-        notable_themes = report_data.get('report', {}).get('notable_themes', [])
-        if notable_themes:
-            st.write("### Notable Themes")
-            for theme in notable_themes:
-                st.write(f"- **{theme.get('theme', 'No Theme')}**: {theme.get('description', 'No description available')}")
+        # Extract and display online mentions in a structured way
+        mentions_data = report_data.get('mentions', [])
+        if mentions_data:
+            st.write("### Online Mentions")
+            for mention in mentions_data:
+                title = mention.get('title', 'No Title')
+                link = mention.get('link', 'No Link')
+                snippet = mention.get('snippet', 'No Snippet')
+                st.write(f"**Title:** {title}")
+                st.write(f"**Link:** {link}")
+                st.write(f"**Snippet:** {snippet}")
+                st.write("---")
         else:
-            st.write("No notable themes available.")
-
+            st.write("No online mentions available.")
+            
     except json.JSONDecodeError:
         st.error("Error parsing JSON data. Please check the JSON format.")
 
