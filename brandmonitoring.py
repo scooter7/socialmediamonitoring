@@ -37,13 +37,17 @@ def create_llm():
 
 # Enhanced function to fetch social media mentions and news with error handling
 def fetch_mentions(brand_name):
-    try:
-        tool_output = search_tool(brand_name)  # Directly call the tool
-        mentions = parse_tool_output(tool_output)
-        return mentions
-    except Exception as e:
-        st.warning(f"Could not retrieve data. Error: {e}")
-        return []
+    sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
+    mentions = {}
+    for source in sources:
+        try:
+            # Attempt to fetch mentions for each platform
+            result = search_tool.run(brand_name)
+            mentions[source] = result or []  # Assign an empty list if result is None or empty
+        except Exception as e:
+            st.warning(f"Could not retrieve data from {source}. Error: {e}")
+            mentions[source] = []  # Store an empty list if an error occurs
+    return mentions
 
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
