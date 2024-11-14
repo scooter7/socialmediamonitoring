@@ -107,15 +107,15 @@ def create_tasks(brand_name, agents):
     )
 
     sentiment_analysis_task = Task(
-        description=f"Analyze the sentiment of the social media mentions about {brand_name}. Categorize them as positive, negative, or neutral.",
+        description=f"Analyze the sentiment of the social media mentions about {brand_name}. Categorize them as positive, negative, or neutral, and provide key insights based on observed themes.",
         agent=agents[2],
-        expected_output="Sentiment distribution and notable themes."
+        expected_output="Detailed sentiment distribution and key insights into themes such as community engagement, student life, or reputation."
     )
 
     report_generation_task = Task(
-        description=f"Generate a JSON-formatted report for {brand_name} based on findings.",
+        description=f"Generate a JSON-formatted report for {brand_name} based on findings, including a section for recommendations to improve sentiment and engagement.",
         agent=agents[3],
-        expected_output="Comprehensive report in JSON format including key insights and recommendations."
+        expected_output="Comprehensive report in JSON format including key insights and actionable recommendations based on sentiment analysis and observed themes."
     )
 
     return [research_task, monitoring_task, sentiment_analysis_task, report_generation_task]
@@ -198,25 +198,25 @@ def display_formatted_report(brand_name, result):
             st.write(f"- Overall Sentiment: {sentiment_analysis.get('overall_sentiment', 'N/A')}")
 
         # Key Insights
-        st.write("**Key Insights**")
-        key_insights = report.get("key_insights", {})
-        if key_insights:
-            for key, insight in key_insights.items():
-                st.write(f"- **{key.replace('_', ' ').title()}**")
-                st.write(f"  - Description: {insight.get('description', 'No description available')}")
-                st.write(f"  - Feedback: {insight.get('feedback', 'No feedback available')}")
-        else:
-            st.write("No key insights available.")
+st.write("**Key Insights**")
+key_insights = report.get("key_insights", {})
+if key_insights:
+    for key, insight in key_insights.items():
+        st.write(f"- **{key.replace('_', ' ').title()}**")
+        st.write(f"  - Description: {insight.get('description', 'No description available')}")
+        st.write(f"  - Feedback: {insight.get('feedback', 'No feedback available')}")
+else:
+    st.write("No key insights available.")
 
-        # Recommendations
-        st.write("**Recommendations**")
-        recommendations = report.get("recommendations", [])
-        if recommendations:
-            for recommendation in recommendations:
-                st.write(f"- **{recommendation.get('action', 'No action specified')}**")
-                st.write(f"  - {recommendation.get('details', 'No additional details provided')}")
-        else:
-            st.write("No recommendations available.")
+# Recommendations
+st.write("**Recommendations**")
+recommendations = report.get("recommendations", [])
+if recommendations:
+    for recommendation in recommendations:
+        st.write(f"- **{recommendation.get('action', 'No action specified')}**")
+        st.write(f"  - {recommendation.get('details', 'No additional details provided')}")
+else:
+    st.write("No recommendations available.")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error("Error parsing the JSON-formatted report. Please check the JSON structure.")
