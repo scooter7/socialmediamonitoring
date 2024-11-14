@@ -69,7 +69,7 @@ def create_agents(brand_name, llm):
     )
     return [researcher, social_media_monitor, sentiment_analyzer, report_generator]
 
-# Define tasks with CrewAI without `output_json`, capturing results manually instead
+# Define tasks with CrewAI
 def create_tasks(brand_name, agents):
     research_task = Task(
         description=f"Research {brand_name} and provide a structured summary.",
@@ -107,14 +107,16 @@ def run_social_media_monitoring(brand_name, max_retries=3):
 
     for attempt in range(max_retries):
         try:
-            # Run each task individually to manually format the JSON output
+            # Execute crew tasks
             result = crew.kickoff()
-            output = {
-                "Research Findings": result.get(0),  # Adjust based on task output indexing
-                "Social Media Mentions": result.get(1),
-                "Sentiment Analysis": result.get(2),
-                "Recommendations": result.get(3)
-            }
+            output = {}
+
+            # Extract outputs based on task names or indices if available in CrewOutput
+            if hasattr(result, "tasks_output"):
+                output = {task.description: task.output for task in result.tasks_output}
+            elif hasattr(result, "json_dict"):
+                output = result.json_dict  # Direct access to JSON dictionary if available
+            
             return output
         except Exception as e:
             st.error(f"Attempt {attempt + 1} failed: {str(e)}")
