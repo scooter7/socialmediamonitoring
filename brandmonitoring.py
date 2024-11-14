@@ -178,8 +178,8 @@ def display_formatted_report(brand_name, task_outputs):
     # Section 4: Key Themes and Recommendations
     st.subheader("4. Key Themes and Recommendations")
     report_output = task_outputs[3].raw if task_outputs and len(task_outputs) > 3 else "No report data available"
-    
-    # Debug: Show raw report output to diagnose JSON parsing
+
+    # Display raw output for debugging purposes
     st.write("**Raw Report Output**", report_output)
 
     try:
@@ -187,33 +187,29 @@ def display_formatted_report(brand_name, task_outputs):
         report_output_cleaned = report_output.strip('```json\n').strip('\n```')
         report_data = json.loads(report_output_cleaned)
 
-        # Display structured information
+        # Display structured information if available
         st.write("**Sentiment Distribution**")
-        sentiment_distribution = report_data.get("sentiment_analysis", {}).get("sentiment_distribution", {})
-        st.write(f"- Positive Mentions: {sentiment_distribution.get('positive_mentions', {}).get('percentage', 'N/A')}%")
-        st.write(f"- Neutral Mentions: {sentiment_distribution.get('neutral_mentions', {}).get('percentage', 'N/A')}%")
-        st.write(f"- Negative Mentions: {sentiment_distribution.get('negative_mentions', {}).get('percentage', 'N/A')}%")
+        sentiment_distribution = report_data.get("Sentiment_Analysis", {})
+        st.write(f"- Positive Mentions: {sentiment_distribution.get('Positive_Mentions', 'N/A')}%")
+        st.write(f"- Neutral Mentions: {sentiment_distribution.get('Neutral_Mentions', 'N/A')}%")
+        st.write(f"- Negative Mentions: {sentiment_distribution.get('Negative_Mentions', 'N/A')}%")
 
         st.write("**Key Insights**")
-        for sentiment_type, insights in sentiment_distribution.items():
-            st.write(f"- **{sentiment_type.capitalize()}**: Key Insights")
-            for insight in insights.get("key_insights", []):
-                st.write(f"  - {insight}")
-
-        st.write("**Notable Themes**")
-        for theme in report_data.get("sentiment_analysis", {}).get("notable_themes", []):
-            st.write(f"- **{theme.get('theme', 'Unnamed Theme')}**")
-            st.write(f"  - Description: {theme.get('description', '')}")
-            st.write(f"  - Examples: {', '.join(theme.get('examples', []))}")
+        key_insights = report_data.get("Key_Insights", {})
+        for theme, details in key_insights.items():
+            st.write(f"- **{theme.replace('_', ' ').title()}**")
+            st.write(f"  - Sentiment: {details.get('Sentiment', 'N/A')}")
+            st.write(f"  - Description: {details.get('Description', 'N/A')}")
+            st.write(f"  - Examples: {', '.join(details.get('Examples', []))}")
 
         st.write("**Conclusion**")
-        conclusion = report_data.get("conclusion", {})
-        st.write(f"- Overall Sentiment: {conclusion.get('summary', '')}")
-        st.write(f"- Notes: {conclusion.get('note', '')}")
+        conclusion = report_data.get("Conclusion", "N/A")
+        st.write(f"- {conclusion}")
 
         st.write("**Recommendations**")
-        for recommendation in report_data.get("recommendations", []):
-            st.write(f"- {recommendation}")
+        recommendations = report_data.get("Recommendations", {})
+        for recommendation, text in recommendations.items():
+            st.write(f"- {recommendation.replace('_', ' ')}: {text}")
 
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         st.error(f"Error parsing the JSON-formatted report: {e}")
