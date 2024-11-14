@@ -161,6 +161,8 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
+    
+    # Parse and display mentions if available
     parsed_mentions = parse_tool_output(mentions_output)
     if parsed_mentions:
         for mention in parsed_mentions:
@@ -169,7 +171,7 @@ def display_formatted_report(brand_name, result):
             st.markdown(f"**Snippet:** {mention['snippet']}")
             st.markdown("---")
     else:
-        st.write("No online mentions available.")
+        st.write("No online mentions found.")
 
     # Section 3: Sentiment Analysis (Concise Overview)
     st.subheader("3. Sentiment Analysis")
