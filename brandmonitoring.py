@@ -27,29 +27,29 @@ search_tool = SerperDevTool()
 def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
-# Enhanced function to fetch online mentions with debugging and structured output
+# Enhanced function to fetch online mentions with detailed debugging
 def fetch_mentions(brand_name):
     sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
     mentions = []
     for source in sources:
         try:
-            # Fetch results from search tool
+            # Fetch results from search tool for each source
             result = search_tool.search(brand_name)
-            st.write(f"Debug - Tool Output for {source}:", result)  # Debugging statement
-
-            # Append each result to mentions list
+            st.write(f"Debug - Tool Output for {source}:", result)  # Display tool output for each source in logs
+            
+            # Append the raw result from each tool output (not parsed)
             mentions.append(result if result else "")
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
-            mentions.append("")  # Append empty if error occurs
+            mentions.append("")  # Append empty string if an error occurs
 
-    # Join all results to create a single output for easier parsing
+    # Join results to create a single output for parsing
     return "\n---\n".join(mentions)
 
-# Parse tool output to extract structured data
+# Parse tool output to directly display each mention with Title, Link, Snippet
 def parse_tool_output(tool_output):
-    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debugging statement
-    # Extract each mention with title, link, and snippet
+    # Display tool output before parsing to verify it matches expected structure
+    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
     return parsed_results
@@ -153,28 +153,32 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
+# Display formatted report to ensure exact tool output structure in Section 2
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
+    # Extract task outputs
+    task_outputs = result.tasks_output
+
     # Section 1: Research Findings
     st.subheader("1. Research Findings")
-    research_output = result.tasks_output[0].raw if result.tasks_output[0] else "No data available"
+    research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
     st.write(research_output)
 
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
-    mentions_output = result.tasks_output[1].raw if result.tasks_output[1] else "No mentions data available"
-    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Debugging statement
+    mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
+    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Display raw mentions output for verification
     
     if mentions_output:
-        # Display verbatim mentions with Title, Link, and Snippet
+        # Display verbatim mentions directly with Title, Link, and Snippet as in the logs
         st.write("## Verbatim Mentions:")
-
-        # Parse the tool output to get structured data for each mention
+        
+        # Parse tool output into structured entries
         parsed_mentions = parse_tool_output(mentions_output)
         
-        # Output each mention in the format: Title, Link, Snippet
+        # Display each entry in the required format: Title, Link, Snippet
         if parsed_mentions:
             for mention in parsed_mentions:
                 st.markdown(
@@ -194,7 +198,7 @@ def display_formatted_report(brand_name, result):
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    sentiment_output = result.tasks_output[2].raw if result.tasks_output[2] else "No sentiment data available"
+    sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
     st.write(sentiment_output)
 
 # Streamlit app interface
