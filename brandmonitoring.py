@@ -28,32 +28,32 @@ def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
 # Capture and concatenate raw tool output
+# Enhanced function to fetch raw mentions and concatenate tool outputs
 def fetch_mentions(brand_name):
-    sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
     raw_output = []  # Store unmodified tool outputs
 
-    for source in sources:
-        try:
-            # Fetch results directly from the tool
-            result = search_tool.search(brand_name)
-            st.write(f"Debug - Raw Tool Output for {source}:", result)  # Verify tool output format
-            raw_output.append(result if result else "")  # Store raw output directly
-        except Exception as e:
-            st.warning(f"Could not retrieve data from {source}. Error: {e}")
-            raw_output.append("")  # Append empty result if error occurs
+    # Fetch data for multiple sources
+    try:
+        # Search the internet for the brand name
+        result = search_tool.search(brand_name)
+        st.write(f"Debug - Raw Tool Output:", result)  # Debug log for tool output
+        raw_output.append(result if result else "")
+    except Exception as e:
+        st.warning(f"Could not retrieve data. Error: {e}")
+        raw_output.append("")  # Append empty string if error occurs
 
-    # Join all raw outputs into a single text block for unified processing
+    # Return raw output as a unified string
     return "\n---\n".join(raw_output)
 
 # Function to parse tool output for structured data
+# Function to parse raw tool output for structured mentions
 def parse_tool_output(tool_output):
-    # Debug log for raw input
-    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)
+    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debug log for input
     
-    # Parse entries in the format: Title, Link, Snippet
+    # Regex to extract entries in Title, Link, Snippet format
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     
-    # Return structured results
+    # Structure parsed results for easy display
     return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
 
 # Create agents with CrewAI for research and analysis
@@ -156,6 +156,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display the report, showing exact tool output for mentions
+# Display formatted report, including raw tool output in Section 2
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -168,15 +169,15 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = result.tasks_output[1].raw if result.tasks_output[1] else "No mentions data available"
-    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Debug log
-    
+    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Debugging log
+
     if mentions_output:
         st.write("## Verbatim Mentions:")
         
-        # Parse raw tool output for structured mentions
+        # Parse the raw tool output into structured data
         parsed_mentions = parse_tool_output(mentions_output)
         
-        # Display each mention in markdown format
+        # Display each mention in the required format
         if parsed_mentions:
             for mention in parsed_mentions:
                 st.markdown(
