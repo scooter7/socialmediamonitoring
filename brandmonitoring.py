@@ -61,7 +61,7 @@ def create_agents(brand_name, llm):
         max_iter=15
     )
 
-   social_media_monitor = Agent(
+    social_media_monitor = Agent(
         role="Social Media Monitor",
         goal=f"Monitor social media platforms for mentions of {brand_name} and retain raw tool output (title, link, snippet).",
         backstory="You are an experienced social media analyst tasked with extracting exact mentions (verbatim tool output) for the report.",
