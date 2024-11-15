@@ -27,7 +27,6 @@ search_tool = SerperDevTool()
 def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
-# Enhanced function to fetch online mentions with error handling
 def fetch_mentions(brand_name):
     sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
     mentions = {}
@@ -39,10 +38,13 @@ def fetch_mentions(brand_name):
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
             mentions[source] = []  # Store an empty list if an error occurs
-    return mentions
+    # Directly return raw tool output for parsing in display
+    return "\n---\n".join(mentions.values())  # Join all source results for easier parsing
 
 # Parse tool output to extract structured data
 def parse_tool_output(tool_output):
+    # Debugging statement to see the tool output before parsing
+    st.write("Debug - Raw Tool Output Received in parse_tool_output:", tool_output)
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
     return parsed_results
@@ -146,7 +148,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Display formatted report based on task outputs
+# Display formatted report with debugging statements
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -162,12 +164,13 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
+    st.write("Debug - Raw Mentions Output Received in display_formatted_report:", mentions_output)  # Debugging statement
     
     if mentions_output:
         # Display verbatim mentions
         st.write("## Verbatim Mentions:")
 
-        # Parsing tool output for structured data
+        # Parse the tool output to get structured data for each mention
         parsed_mentions = parse_tool_output(mentions_output)
         
         # Ensure structured output is correctly displayed
