@@ -13,6 +13,62 @@ import openai
 import json
 import re
 
+st.markdown(
+    """
+    <style>
+    .st-emotion-cache-12fmjuu.ezrtsby2 {
+        display: none;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <style>
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .logo-container img {
+        width: 300px;
+    }
+    .app-container {
+        border-left: 5px solid #58258b;
+        border-right: 5px solid #58258b;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    .stTextArea, .stTextInput, .stMultiSelect, .stSlider {
+        color: #42145f;
+    }
+    .stButton button {
+        background-color: #fec923;
+        color: #42145f;
+    }
+    .stButton button:hover {
+        background-color: #42145f;
+        color: #fec923;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <div class="logo-container">
+        <img src="https://seeklogo.com/images/E/east-carolina-university-logo-D87F964E5D-seeklogo.com.png" alt="Logo">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown('<div class="app-container">', unsafe_allow_html=True)
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -215,7 +271,7 @@ def summarize_mentions(parsed_mentions):
         st.markdown(note)
 
 # Streamlit app interface
-st.title("Online and Sentiment Analysis Report")
+st.title("Online Presence Monitor")
 st.write("Analyze a brand or topic with integrated online monitoring, sentiment analysis, and report generation.")
 
 # User input for brand or topic
