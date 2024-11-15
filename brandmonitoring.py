@@ -30,31 +30,31 @@ def create_llm():
 # Capture and concatenate raw tool output
 def fetch_mentions(brand_name):
     sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
-    mentions = []
+    raw_output = []  # Store unmodified tool outputs
+
     for source in sources:
         try:
-            # Fetch results from the tool for each source
+            # Fetch results directly from the tool
             result = search_tool.search(brand_name)
-            st.write(f"Debug - Tool Output for {source}:", result)  # Confirm raw tool output format
-            
-            # Append raw result from the tool without parsing
-            mentions.append(result if result else "")
+            st.write(f"Debug - Raw Tool Output for {source}:", result)  # Verify tool output format
+            raw_output.append(result if result else "")  # Store raw output directly
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
-            mentions.append("")  # Append an empty string if an error occurs
+            raw_output.append("")  # Append empty result if error occurs
 
-    # Join all results to create a single string for direct display
-    return "\n---\n".join(mentions)
+    # Join all raw outputs into a single text block for unified processing
+    return "\n---\n".join(raw_output)
 
 # Function to parse tool output for structured data
 def parse_tool_output(tool_output):
-    # Confirm tool output format in debug
-    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debugging to check raw input format
+    # Debug log for raw input
+    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)
     
-    # Use regex to parse entries with Title, Link, Snippet format
+    # Parse entries in the format: Title, Link, Snippet
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
-    parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
-    return parsed_results
+    
+    # Return structured results
+    return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
 
 # Create agents with CrewAI for research and analysis
 def create_agents(brand_name, llm):
@@ -160,29 +160,37 @@ def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
-    # Extract task outputs
-    task_outputs = result.tasks_output
-
     # Section 1: Research Findings
     st.subheader("1. Research Findings")
-    research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
+    research_output = result.tasks_output[0].raw if result.tasks_output[0] else "No data available"
     st.write(research_output)
 
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
-    mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Log exact mentions output
+    mentions_output = result.tasks_output[1].raw if result.tasks_output[1] else "No mentions data available"
+    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Debug log
     
     if mentions_output:
-        # Display raw verbatim mentions directly as received from tool output
         st.write("## Verbatim Mentions:")
         
-        # Show each mention in the required format without parsing
-        st.write(mentions_output)  # Direct output to display `Title`, `Link`, and `Snippet`
+        # Parse raw tool output for structured mentions
+        parsed_mentions = parse_tool_output(mentions_output)
+        
+        # Display each mention in markdown format
+        if parsed_mentions:
+            for mention in parsed_mentions:
+                st.markdown(
+                    f"**Title:** [{mention['title']}]({mention['link']})\n\n"
+                    f"**Snippet:** {mention['snippet']}\n\n---"
+                )
+        else:
+            st.write("No structured mentions available from tool output.")
+    else:
+        st.write("No online mentions available.")
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
+    sentiment_output = result.tasks_output[2].raw if result.tasks_output[2] else "No sentiment data available"
     st.write(sentiment_output)
 
 # Streamlit app interface
