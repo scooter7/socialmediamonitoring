@@ -40,12 +40,10 @@ def fetch_mentions(brand_name):
 
 # Function to parse tool output for structured data
 def parse_tool_output(tool_output):
-    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debugging log
-    
-    # Extract structured entries with regex
+    """
+    Parse raw tool output to extract all posts without missing any structured entries.
+    """
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
-    
-    # Return structured results
     return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
 
 # Create agents with CrewAI for research and analysis
@@ -164,22 +162,20 @@ def display_formatted_report(brand_name, result):
     if mentions_output:
         st.write("## Verbatim Mentions:")
 
-        # Parse the tool output to extract structured mentions
+        # Parse the tool output to extract all structured mentions
         parsed_mentions = parse_tool_output(mentions_output)
 
-        # Display each mention in markdown format
         if parsed_mentions:
             for mention in parsed_mentions:
                 st.markdown(
                     f"**Title:** [{mention['title']}]({mention['link']})\n\n"
                     f"**Snippet:** {mention['snippet']}\n\n---"
                 )
-            
-            # Include a summary of the mentions after displaying verbatim mentions
+            # Add a summary of the mentions
             st.write("## Summary of Mentions:")
             summarize_mentions(parsed_mentions)
         else:
-            st.write("No structured mentions available from tool output.")
+            st.write("No verbatim mentions found.")
     else:
         st.write("No online mentions available.")
 
@@ -189,17 +185,25 @@ def display_formatted_report(brand_name, result):
     st.write(sentiment_output)
 
 
-# Function to summarize mentions
+def parse_tool_output(tool_output):
+    """
+    Parse raw tool output to extract all posts without missing any structured entries.
+    """
+    entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
+    return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
+
+
 def summarize_mentions(parsed_mentions):
+    """
+    Provide a summary of mentions by platforms and notable posts.
+    """
     platforms = {}
     notable_mentions = []
 
     for mention in parsed_mentions:
-        # Extract domain to identify platforms
+        # Extract domain to count platforms
         domain = mention['link'].split('/')[2].replace('www.', '')
-        if domain not in platforms:
-            platforms[domain] = 0
-        platforms[domain] += 1
+        platforms[domain] = platforms.get(domain, 0) + 1
 
         # Collect notable mentions
         notable_mentions.append(f"- **{mention['title']}**: {mention['snippet']}")
