@@ -160,7 +160,6 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = result.tasks_output[1].raw if result.tasks_output[1] else "No mentions data available"
-    st.write("Debug - Raw Tool Output:", mentions_output)  # Debugging log
 
     if mentions_output:
         st.write("## Verbatim Mentions:")
@@ -190,13 +189,13 @@ def display_formatted_report(brand_name, result):
     st.write(sentiment_output)
 
 
-# Function to generate a summary of the mentions
+# Function to summarize mentions
 def summarize_mentions(parsed_mentions):
     platforms = {}
     notable_mentions = []
 
     for mention in parsed_mentions:
-        # Extract the domain from the link to determine the platform
+        # Extract domain to identify platforms
         domain = mention['link'].split('/')[2].replace('www.', '')
         if domain not in platforms:
             platforms[domain] = 0
@@ -208,7 +207,7 @@ def summarize_mentions(parsed_mentions):
     # Summarize platforms
     st.write("### Platforms Mentioned:")
     for platform, count in platforms.items():
-        st.markdown(f"- {platform}: {count} mention(s)")
+        st.markdown(f"- **{platform}**: {count} mention(s)")
 
     # Summarize notable mentions
     st.write("### Notable Mentions:")
