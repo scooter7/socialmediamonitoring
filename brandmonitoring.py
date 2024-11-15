@@ -40,12 +40,13 @@ def fetch_mentions(brand_name):
 
 # Function to parse tool output for structured data
 def parse_tool_output(tool_output):
-    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debugging log
-    
+    """
+    Parse raw tool output to extract all posts without missing any structured entries.
+    """
     # Extract structured entries with regex
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     
-    # Return structured results
+    # Return structured results if entries are found, otherwise return an empty list
     return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
 
 # Create agents with CrewAI for research and analysis
@@ -159,15 +160,14 @@ def display_formatted_report(brand_name, result):
 
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
-    mentions_output = result.tasks_output[1].raw if result.tasks_output[1] else "No mentions data available"
+    mentions_output = result.tasks_output[1].raw if result.tasks_output[1] else ""
 
-    if mentions_output:
+    if mentions_output.strip():  # Check if mentions_output is not empty or just whitespace
         st.write("## Verbatim Mentions:")
 
         # Parse the tool output to extract structured mentions
         parsed_mentions = parse_tool_output(mentions_output)
 
-        # Display each mention in markdown format
         if parsed_mentions:
             for mention in parsed_mentions:
                 st.markdown(
@@ -179,7 +179,7 @@ def display_formatted_report(brand_name, result):
             st.write("## Summary of Mentions:")
             summarize_mentions(parsed_mentions)
         else:
-            st.write("No structured mentions available from tool output.")
+            st.write("No mentions could be extracted.")
     else:
         st.write("No online mentions available.")
 
@@ -187,7 +187,6 @@ def display_formatted_report(brand_name, result):
     st.subheader("3. Sentiment Analysis")
     sentiment_output = result.tasks_output[2].raw if result.tasks_output[2] else "No sentiment data available"
     st.write(sentiment_output)
-
 
 # Function to summarize mentions
 def summarize_mentions(parsed_mentions):
