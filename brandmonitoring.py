@@ -167,7 +167,9 @@ def display_formatted_report(brand_name, result):
     if mentions_output:
         # Display verbatim mentions
         st.write("## Verbatim Mentions:")
-        parsed_mentions = parse_tool_output(mentions_output)  # Use the parse_tool_output function to structure mentions
+        
+        # Manually format the mentions output into title, link, and snippet sections
+        parsed_mentions = parse_tool_output(mentions_output)  # Use the parse_tool_output function
         for mention in parsed_mentions:
             st.markdown(f"**Title:** [{mention['title']}]({mention['link']})\n\n**Snippet:** {mention['snippet']}\n\n---")
 
