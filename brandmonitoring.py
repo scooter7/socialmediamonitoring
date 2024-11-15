@@ -30,30 +30,23 @@ def create_llm():
 # Capture and concatenate raw tool output
 # Enhanced function to fetch raw mentions and concatenate tool outputs
 def fetch_mentions(brand_name):
-    raw_output = []  # Store unmodified tool outputs
-
-    # Fetch data for multiple sources
     try:
-        # Search the internet for the brand name
+        # Directly fetch tool output
         result = search_tool.search(brand_name)
-        st.write(f"Debug - Raw Tool Output:", result)  # Debug log for tool output
-        raw_output.append(result if result else "")
+        st.write(f"Debug - Raw Tool Output in fetch_mentions:", result)  # Debugging
+        return result if result else ""
     except Exception as e:
-        st.warning(f"Could not retrieve data. Error: {e}")
-        raw_output.append("")  # Append empty string if error occurs
-
-    # Return raw output as a unified string
-    return "\n---\n".join(raw_output)
+        st.warning(f"Error fetching mentions: {e}")
+        return ""
 
 # Function to parse tool output for structured data
-# Function to parse raw tool output for structured mentions
 def parse_tool_output(tool_output):
-    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debug log for input
+    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debugging log
     
-    # Regex to extract entries in Title, Link, Snippet format
+    # Extract structured entries with regex
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     
-    # Structure parsed results for easy display
+    # Return structured results
     return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
 
 # Create agents with CrewAI for research and analysis
@@ -156,7 +149,6 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display the report, showing exact tool output for mentions
-# Display formatted report, including raw tool output in Section 2
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -174,10 +166,10 @@ def display_formatted_report(brand_name, result):
     if mentions_output:
         st.write("## Verbatim Mentions:")
         
-        # Parse the raw tool output into structured data
+        # Parse the tool output into structured mentions
         parsed_mentions = parse_tool_output(mentions_output)
         
-        # Display each mention in the required format
+        # Display each mention in markdown format
         if parsed_mentions:
             for mention in parsed_mentions:
                 st.markdown(
