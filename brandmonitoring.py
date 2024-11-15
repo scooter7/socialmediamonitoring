@@ -61,7 +61,7 @@ st.markdown(
 st.markdown(
     """
     <div class="logo-container">
-        <img src="https://seeklogo.com/images/E/east-carolina-university-logo-D87F964E5D-seeklogo.com.png" alt="Logo">
+        <img src="https://www.carnegiehighered.com/wp-content/uploads/2021/11/Twitter-Image-2-2021.png" alt="Logo">
     </div>
     """,
     unsafe_allow_html=True
