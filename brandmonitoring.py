@@ -27,29 +27,29 @@ search_tool = SerperDevTool()
 def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
-# Enhanced function to fetch online mentions with detailed debugging
+# Enhanced function to fetch online mentions, ensuring it captures raw tool output
 def fetch_mentions(brand_name):
     sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
     mentions = []
     for source in sources:
         try:
-            # Fetch results from search tool for each source
+            # Fetch tool output directly without any intermediate parsing
             result = search_tool.search(brand_name)
-            st.write(f"Debug - Tool Output for {source}:", result)  # Display tool output for each source in logs
-            
-            # Append the raw result from each tool output (not parsed)
+            st.write(f"Debug - Raw Tool Output for {source}:", result)  # Debugging to confirm the exact format of tool output
             mentions.append(result if result else "")
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
-            mentions.append("")  # Append empty string if an error occurs
+            mentions.append("")  # Append an empty string if an error occurs
 
-    # Join results to create a single output for parsing
+    # Join all raw tool outputs into a single text for display
     return "\n---\n".join(mentions)
 
-# Parse tool output to directly display each mention with Title, Link, Snippet
+# Function to parse tool output for structured data
 def parse_tool_output(tool_output):
-    # Display tool output before parsing to verify it matches expected structure
-    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)
+    # Confirm tool output format in debug
+    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debugging to check raw input format
+    
+    # Use regex to parse entries with Title, Link, Snippet format
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
     parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
     return parsed_results
@@ -153,7 +153,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Display formatted report to ensure exact tool output structure in Section 2
+# Display formatted report to show exact tool output in Section 2
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -169,16 +169,16 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Display raw mentions output for verification
+    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Debug to verify mentions content
     
     if mentions_output:
-        # Display verbatim mentions directly with Title, Link, and Snippet as in the logs
+        # Display verbatim mentions as Title, Link, Snippet entries
         st.write("## Verbatim Mentions:")
-        
-        # Parse tool output into structured entries
+
+        # Parse tool output to get structured data for each mention
         parsed_mentions = parse_tool_output(mentions_output)
         
-        # Display each entry in the required format: Title, Link, Snippet
+        # Display each entry as Title, Link, Snippet in markdown format
         if parsed_mentions:
             for mention in parsed_mentions:
                 st.markdown(
@@ -188,7 +188,7 @@ def display_formatted_report(brand_name, result):
         else:
             st.write("No structured mentions available from tool output.")
 
-        # Extract and display summary if available
+        # Check for summary if present and display
         summary_match = re.search(r"Summary of Mentions[\s\S]+?(?=\n\n|\Z)", mentions_output)
         if summary_match:
             st.write("## Summary of Mentions:")
