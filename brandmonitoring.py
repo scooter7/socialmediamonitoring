@@ -147,6 +147,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 return None
 
 # Display formatted report based on task outputs
+# Display formatted report based on task outputs
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -166,7 +167,9 @@ def display_formatted_report(brand_name, result):
     if mentions_output:
         # Display verbatim mentions
         st.write("## Verbatim Mentions:")
-        st.write(mentions_output)
+        parsed_mentions = parse_tool_output(mentions_output)  # Use the parse_tool_output function to structure mentions
+        for mention in parsed_mentions:
+            st.markdown(f"**Title:** [{mention['title']}]({mention['link']})\n\n**Snippet:** {mention['snippet']}\n\n---")
 
         # Extract and display summary separately if included
         summary_match = re.search(r"Summary of Mentions[\s\S]+?(?=\n\n|\Z)", mentions_output)
