@@ -27,21 +27,23 @@ search_tool = SerperDevTool()
 def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
-# Enhanced function to fetch online mentions, ensuring it captures raw tool output
+# Capture and concatenate raw tool output
 def fetch_mentions(brand_name):
     sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
     mentions = []
     for source in sources:
         try:
-            # Fetch tool output directly without any intermediate parsing
+            # Fetch results from the tool for each source
             result = search_tool.search(brand_name)
-            st.write(f"Debug - Raw Tool Output for {source}:", result)  # Debugging to confirm the exact format of tool output
+            st.write(f"Debug - Tool Output for {source}:", result)  # Confirm raw tool output format
+            
+            # Append raw result from the tool without parsing
             mentions.append(result if result else "")
         except Exception as e:
             st.warning(f"Could not retrieve data from {source}. Error: {e}")
             mentions.append("")  # Append an empty string if an error occurs
 
-    # Join all raw tool outputs into a single text for display
+    # Join all results to create a single string for direct display
     return "\n---\n".join(mentions)
 
 # Function to parse tool output for structured data
@@ -153,7 +155,7 @@ def run_social_media_monitoring(brand_name, max_retries=3):
                 st.error("Max retries reached. Unable to complete the task.")
                 return None
 
-# Display formatted report to show exact tool output in Section 2
+# Display the report, showing exact tool output for mentions
 def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
@@ -169,32 +171,14 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Debug to verify mentions content
+    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Log exact mentions output
     
     if mentions_output:
-        # Display verbatim mentions as Title, Link, Snippet entries
+        # Display raw verbatim mentions directly as received from tool output
         st.write("## Verbatim Mentions:")
-
-        # Parse tool output to get structured data for each mention
-        parsed_mentions = parse_tool_output(mentions_output)
         
-        # Display each entry as Title, Link, Snippet in markdown format
-        if parsed_mentions:
-            for mention in parsed_mentions:
-                st.markdown(
-                    f"**Title:** [{mention['title']}]({mention['link']})\n\n"
-                    f"**Snippet:** {mention['snippet']}\n\n---"
-                )
-        else:
-            st.write("No structured mentions available from tool output.")
-
-        # Check for summary if present and display
-        summary_match = re.search(r"Summary of Mentions[\s\S]+?(?=\n\n|\Z)", mentions_output)
-        if summary_match:
-            st.write("## Summary of Mentions:")
-            st.write(summary_match.group(0))
-    else:
-        st.write("No online mentions available.")
+        # Show each mention in the required format without parsing
+        st.write(mentions_output)  # Direct output to display `Title`, `Link`, and `Snippet`
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
