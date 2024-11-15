@@ -162,22 +162,25 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-
+    
     if mentions_output:
         # Display verbatim mentions
         st.write("## Verbatim Mentions:")
 
-        # Parse the tool output to get structured data for each mention
+        # Parsing tool output for structured data
         parsed_mentions = parse_tool_output(mentions_output)
+        
+        # Ensure structured output is correctly displayed
         if parsed_mentions:
             for mention in parsed_mentions:
                 st.markdown(
-                    f"**Title:** [{mention['title']}]({mention['link']})\n\n**Snippet:** {mention['snippet']}\n\n---"
+                    f"**Title:** [{mention['title']}]({mention['link']})\n\n"
+                    f"**Snippet:** {mention['snippet']}\n\n---"
                 )
         else:
             st.write("No structured mentions available from tool output.")
 
-        # Extract and display summary separately if included
+        # Extract and display summary if available
         summary_match = re.search(r"Summary of Mentions[\s\S]+?(?=\n\n|\Z)", mentions_output)
         if summary_match:
             st.write("## Summary of Mentions:")
