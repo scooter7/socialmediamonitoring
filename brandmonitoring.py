@@ -160,12 +160,12 @@ def display_formatted_report(brand_name, result):
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
     mentions_output = result.tasks_output[1].raw if result.tasks_output[1] else "No mentions data available"
-    st.write("Debug - Raw Tool Output in display_formatted_report:", mentions_output)  # Debugging log
+    st.write("Debug - Raw Tool Output:", mentions_output)  # Debugging log
 
     if mentions_output:
         st.write("## Verbatim Mentions:")
 
-        # Parse the raw tool output to extract title, link, and snippet
+        # Parse the tool output to extract structured mentions
         parsed_mentions = parse_tool_output(mentions_output)
 
         # Display each mention in markdown format
@@ -175,6 +175,10 @@ def display_formatted_report(brand_name, result):
                     f"**Title:** [{mention['title']}]({mention['link']})\n\n"
                     f"**Snippet:** {mention['snippet']}\n\n---"
                 )
+            
+            # Include a summary of the mentions after displaying verbatim mentions
+            st.write("## Summary of Mentions:")
+            summarize_mentions(parsed_mentions)
         else:
             st.write("No structured mentions available from tool output.")
     else:
@@ -184,6 +188,32 @@ def display_formatted_report(brand_name, result):
     st.subheader("3. Sentiment Analysis")
     sentiment_output = result.tasks_output[2].raw if result.tasks_output[2] else "No sentiment data available"
     st.write(sentiment_output)
+
+
+# Function to generate a summary of the mentions
+def summarize_mentions(parsed_mentions):
+    platforms = {}
+    notable_mentions = []
+
+    for mention in parsed_mentions:
+        # Extract the domain from the link to determine the platform
+        domain = mention['link'].split('/')[2].replace('www.', '')
+        if domain not in platforms:
+            platforms[domain] = 0
+        platforms[domain] += 1
+
+        # Collect notable mentions
+        notable_mentions.append(f"- **{mention['title']}**: {mention['snippet']}")
+
+    # Summarize platforms
+    st.write("### Platforms Mentioned:")
+    for platform, count in platforms.items():
+        st.markdown(f"- {platform}: {count} mention(s)")
+
+    # Summarize notable mentions
+    st.write("### Notable Mentions:")
+    for note in notable_mentions:
+        st.markdown(note)
 
 # Streamlit app interface
 st.title("Online and Sentiment Analysis Report")
