@@ -40,18 +40,13 @@ def fetch_mentions(brand_name):
 
 # Function to parse tool output for structured data
 def parse_tool_output(tool_output):
-    """
-    Parse raw tool output to extract mentions with title, link, and snippet.
-    """
-    if not tool_output.strip():
-        return []
-
-    # Extract structured entries using regex
-    matches = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
-    return [
-        {"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()}
-        for title, link, snippet in matches
-    ]
+    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debugging log
+    
+    # Extract structured entries with regex
+    entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
+    
+    # Return structured results
+    return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
 
 # Create agents with CrewAI for research and analysis
 def create_agents(brand_name, llm):
@@ -164,31 +159,35 @@ def display_formatted_report(brand_name, result):
 
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
-    mentions_output = result.tasks_output[1].raw if result.tasks_output[1] else ""
+    mentions_output = result.tasks_output[1].raw if result.tasks_output[1] else "No mentions data available"
 
-    if mentions_output.strip():  # Check if mentions_output is not empty or whitespace
+    if mentions_output:
         st.write("## Verbatim Mentions:")
+
+        # Parse the tool output to extract structured mentions
         parsed_mentions = parse_tool_output(mentions_output)
 
+        # Display each mention in markdown format
         if parsed_mentions:
             for mention in parsed_mentions:
                 st.markdown(
                     f"**Title:** [{mention['title']}]({mention['link']})\n\n"
                     f"**Snippet:** {mention['snippet']}\n\n---"
                 )
-
-            # Add summary after verbatim mentions
+            
+            # Include a summary of the mentions after displaying verbatim mentions
             st.write("## Summary of Mentions:")
             summarize_mentions(parsed_mentions)
         else:
-            st.write("No mentions could be structured from the raw data.")
+            st.write("No structured mentions available from tool output.")
     else:
-        st.write("No online mentions found for this topic.")
+        st.write("No online mentions available.")
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
     sentiment_output = result.tasks_output[2].raw if result.tasks_output[2] else "No sentiment data available"
     st.write(sentiment_output)
+
 
 # Function to summarize mentions
 def summarize_mentions(parsed_mentions):
