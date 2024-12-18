@@ -13,6 +13,62 @@ import openai
 import json
 import re
 
+st.markdown(
+    """
+    <style>
+    .st-emotion-cache-12fmjuu.ezrtsby2 {
+        display: none;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <style>
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .logo-container img {
+        width: 300px;
+    }
+    .app-container {
+        border-left: 5px solid #58258b;
+        border-right: 5px solid #58258b;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    .stTextArea, .stTextInput, .stMultiSelect, .stSlider {
+        color: #42145f;
+    }
+    .stButton button {
+        background-color: #fec923;
+        color: #42145f;
+    }
+    .stButton button:hover {
+        background-color: #42145f;
+        color: #fec923;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <div class="logo-container">
+        <img src="https://www.carnegiehighered.com/wp-content/uploads/2021/11/Twitter-Image-2-2021.png" alt="Logo">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown('<div class="app-container">', unsafe_allow_html=True)
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -28,33 +84,46 @@ def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
 # Capture and concatenate raw tool output
-def fetch_mentions(brand_name):
-    sources = ["Twitter", "Facebook", "Reddit", "Quora", "News"]
-    mentions = []
-    for source in sources:
-        try:
-            # Fetch results from the tool for each source
-            result = search_tool.search(brand_name)
-            st.write(f"Debug - Tool Output for {source}:", result)  # Confirm raw tool output format
-            
-            # Append raw result from the tool without parsing
-            mentions.append(result if result else "")
-        except Exception as e:
-            st.warning(f"Could not retrieve data from {source}. Error: {e}")
-            mentions.append("")  # Append an empty string if an error occurs
+from datetime import datetime, timedelta
 
-    # Join all results to create a single string for direct display
-    return "\n---\n".join(mentions)
+# Capture and concatenate raw tool output with date filtering
+from datetime import datetime, timedelta
+
+# Capture and concatenate raw tool output with date filtering
+def fetch_mentions(brand_name):
+    try:
+        # Fetch raw tool output
+        result = search_tool.search(brand_name)
+
+        # Define two months ago as the cutoff date
+        cutoff_date = datetime.now() - timedelta(days=60)
+
+        # Extract and filter results by date if the output contains dates
+        filtered_result = []
+        for entry in result.split("\n---\n"):
+            # Extract potential date using regex or text parsing
+            date_match = re.search(r"\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b \d{1,2}, \d{4}", entry)
+            if date_match:
+                # Parse the date and compare it with the cutoff date
+                mention_date = datetime.strptime(date_match.group(), "%b %d, %Y")
+                if mention_date >= cutoff_date:
+                    filtered_result.append(entry)
+        
+        # Return filtered results or a message if none are valid
+        return "\n---\n".join(filtered_result) if filtered_result else "No mentions from the last two months."
+    except Exception as e:
+        st.warning(f"Error fetching mentions: {e}")
+        return ""
 
 # Function to parse tool output for structured data
 def parse_tool_output(tool_output):
-    # Confirm tool output format in debug
-    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debugging to check raw input format
+    st.write("Debug - Raw Tool Output in parse_tool_output:", tool_output)  # Debugging log
     
-    # Use regex to parse entries with Title, Link, Snippet format
+    # Extract structured entries with regex
     entries = re.findall(r"Title: (.+?)\nLink: (.+?)\nSnippet: (.+?)(?=\n---|\Z)", tool_output, re.DOTALL)
-    parsed_results = [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
-    return parsed_results
+    
+    # Return structured results
+    return [{"title": title.strip(), "link": link.strip(), "snippet": snippet.strip()} for title, link, snippet in entries]
 
 # Create agents with CrewAI for research and analysis
 def create_agents(brand_name, llm):
@@ -71,12 +140,12 @@ def create_agents(brand_name, llm):
 
     social_media_monitor = Agent(
         role="Social Media Monitor",
-        goal=f"Monitor social media platforms for mentions of {brand_name}.",
-        backstory="You are an experienced social media analyst with keen eyes for trends and mentions.",
+        goal=f"Monitor social media platforms for mentions of {brand_name} and retain raw tool output (title, link, snippet).",
+        backstory="You are an experienced social media analyst tasked with extracting exact mentions (verbatim tool output) for the report.",
         verbose=True,
         allow_delegation=False,
         tools=[search_tool],
-        llm=llm,
+        llm=create_llm(),
         max_iter=15
     )
 
@@ -111,9 +180,9 @@ def create_tasks(brand_name, agents):
     )
 
     monitoring_task = Task(
-        description=f"Monitor social media platforms for mentions of '{brand_name}'. Provide a summary of the mentions.",
+        description=f"Monitor social media platforms for mentions of '{brand_name}' and provide verbatim tool outputs (title, link, snippet) in the report.",
         agent=agents[1],
-        expected_output="Summary of mentions including counts, platforms, notable mentions, and hashtags."
+        expected_output="Verbatim tool outputs showing title, link, and snippet for mentions of the brand."
     )
 
     sentiment_analysis_task = Task(
@@ -160,33 +229,70 @@ def display_formatted_report(brand_name, result):
     st.header(f"Online and Sentiment Analysis Report for {brand_name}")
     st.write("---")
 
-    # Extract task outputs
-    task_outputs = result.tasks_output
-
     # Section 1: Research Findings
     st.subheader("1. Research Findings")
-    research_output = task_outputs[0].raw if task_outputs[0] else "No data available"
+    research_output = result.tasks_output[0].raw if result.tasks_output[0] else "No data available"
     st.write(research_output)
 
     # Section 2: Online Mentions
     st.subheader("2. Online Mentions")
-    mentions_output = task_outputs[1].raw if task_outputs[1] else "No mentions data available"
-    st.write("Debug - Mentions Output in display_formatted_report:", mentions_output)  # Log exact mentions output
-    
+    mentions_output = result.tasks_output[1].raw if result.tasks_output[1] else "No mentions data available"
+
     if mentions_output:
-        # Display raw verbatim mentions directly as received from tool output
         st.write("## Verbatim Mentions:")
-        
-        # Show each mention in the required format without parsing
-        st.write(mentions_output)  # Direct output to display `Title`, `Link`, and `Snippet`
+
+        # Parse the tool output to extract structured mentions
+        parsed_mentions = parse_tool_output(mentions_output)
+
+        # Display each mention in markdown format
+        if parsed_mentions:
+            for mention in parsed_mentions:
+                st.markdown(
+                    f"**Title:** [{mention['title']}]({mention['link']})\n\n"
+                    f"**Snippet:** {mention['snippet']}\n\n---"
+                )
+            
+            # Include a summary of the mentions after displaying verbatim mentions
+            st.write("## Summary of Mentions:")
+            summarize_mentions(parsed_mentions)
+        else:
+            st.write("No structured mentions available from tool output.")
+    else:
+        st.write("No online mentions available.")
 
     # Section 3: Sentiment Analysis
     st.subheader("3. Sentiment Analysis")
-    sentiment_output = task_outputs[2].raw if task_outputs[2] else "No sentiment data available"
+    sentiment_output = result.tasks_output[2].raw if result.tasks_output[2] else "No sentiment data available"
     st.write(sentiment_output)
 
+
+# Function to summarize mentions
+def summarize_mentions(parsed_mentions):
+    platforms = {}
+    notable_mentions = []
+
+    for mention in parsed_mentions:
+        # Extract domain to identify platforms
+        domain = mention['link'].split('/')[2].replace('www.', '')
+        if domain not in platforms:
+            platforms[domain] = 0
+        platforms[domain] += 1
+
+        # Collect notable mentions
+        notable_mentions.append(f"- **{mention['title']}**: {mention['snippet']}")
+
+    # Summarize platforms
+    st.write("### Platforms Mentioned:")
+    for platform, count in platforms.items():
+        st.markdown(f"- **{platform}**: {count} mention(s)")
+
+    # Summarize notable mentions
+    st.write("### Notable Mentions:")
+    for note in notable_mentions:
+        st.markdown(note)
+
 # Streamlit app interface
-st.title("Online and Sentiment Analysis Report")
+st.title("Online Presence Monitor")
 st.write("Analyze a brand or topic with integrated online monitoring, sentiment analysis, and report generation.")
 
 # User input for brand or topic
