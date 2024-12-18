@@ -87,23 +87,30 @@ def create_llm():
 from datetime import datetime, timedelta
 
 # Capture and concatenate raw tool output with date filtering
+from datetime import datetime, timedelta
+
+# Capture and concatenate raw tool output with date filtering
 def fetch_mentions(brand_name):
     try:
-        # Calculate the date range (last two months)
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=60)
+        # Fetch raw tool output
+        result = search_tool.search(brand_name)
 
-        # Format dates as strings (modify format based on API requirements, e.g., "YYYY-MM-DD")
-        start_date_str = start_date.strftime("%Y-%m-%d")
-        end_date_str = end_date.strftime("%Y-%m-%d")
+        # Define two months ago as the cutoff date
+        cutoff_date = datetime.now() - timedelta(days=60)
 
-        # Include date filtering in the search query (adapt based on SerperDevTool or API docs)
-        search_query = f"{brand_name} after:{start_date_str} before:{end_date_str}"
-
-        # Fetch tool output directly
-        result = search_tool.search(search_query)
-        st.write(f"Debug - Raw Tool Output in fetch_mentions with date filtering:", result)  # Debugging
-        return result if result else ""
+        # Extract and filter results by date if the output contains dates
+        filtered_result = []
+        for entry in result.split("\n---\n"):
+            # Extract potential date using regex or text parsing
+            date_match = re.search(r"\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b \d{1,2}, \d{4}", entry)
+            if date_match:
+                # Parse the date and compare it with the cutoff date
+                mention_date = datetime.strptime(date_match.group(), "%b %d, %Y")
+                if mention_date >= cutoff_date:
+                    filtered_result.append(entry)
+        
+        # Return filtered results or a message if none are valid
+        return "\n---\n".join(filtered_result) if filtered_result else "No mentions from the last two months."
     except Exception as e:
         st.warning(f"Error fetching mentions: {e}")
         return ""
