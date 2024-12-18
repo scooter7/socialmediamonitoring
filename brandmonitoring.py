@@ -84,11 +84,25 @@ def create_llm():
     return ChatOpenAI(model="gpt-4o-mini")
 
 # Capture and concatenate raw tool output
+from datetime import datetime, timedelta
+
+# Capture and concatenate raw tool output with date filtering
 def fetch_mentions(brand_name):
     try:
+        # Calculate the date range (last two months)
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=60)
+
+        # Format dates as strings (modify format based on API requirements, e.g., "YYYY-MM-DD")
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
+
+        # Include date filtering in the search query (adapt based on SerperDevTool or API docs)
+        search_query = f"{brand_name} after:{start_date_str} before:{end_date_str}"
+
         # Fetch tool output directly
-        result = search_tool.search(brand_name)
-        st.write(f"Debug - Raw Tool Output in fetch_mentions:", result)  # Debugging
+        result = search_tool.search(search_query)
+        st.write(f"Debug - Raw Tool Output in fetch_mentions with date filtering:", result)  # Debugging
         return result if result else ""
     except Exception as e:
         st.warning(f"Error fetching mentions: {e}")
